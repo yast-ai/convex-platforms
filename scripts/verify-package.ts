@@ -161,11 +161,30 @@ try {
   await Bun.write(
     join(consumer, 'index.ts'),
     `import { v } from 'convex/values';
-import type { GenericDataModel } from 'convex/server';
+import type { GenericDataModel, ApiFromModules, FunctionArgs, FunctionReturnType } from 'convex/server';
 import { createPlatformFunctions, identityFields } from ${JSON.stringify(packageSpecifier(packageJson.name, './functions'))};
 import type { Manifest } from ${JSON.stringify(packageJson.name)};
 const builders = createPlatformFunctions<GenericDataModel>();
 builders.internalMutation({ args: { ...identityFields, text: v.string() }, returns: v.string(), handler: async (_ctx, args) => args.text });
+import { createWorkOSFunctions } from ${JSON.stringify(packageSpecifier(packageJson.name, './workos'))};
+const workos = createWorkOSFunctions({
+  role: v.union(v.literal('admin'), v.literal('member')),
+  roles: ['admin', 'member'], adminRoles: ['admin'], defaultRole: 'member',
+  getClient: () => { throw new Error('No credentials during discovery'); },
+  getSessionIssuers: () => ['https://api.workos.com/'],
+  resolveIdentity: async () => ({ orgId: 'org_test', userId: 'user_test', role: 'admin' as const }),
+});
+type InternalApi = ApiFromModules<{ account: typeof workos.account; members: typeof workos.members }>;
+type PublicApi = ApiFromModules<{ account: typeof workos.public.account }>;
+type Identity = FunctionReturnType<InternalApi['account']['getAccount']>;
+const exactRole = (identity: Identity): 'admin' | 'member' => identity.role;
+const updateArgs: FunctionArgs<InternalApi['members']['updateMemberRole']> = { orgId: 'org_test', userId: 'user_test', role: 'admin', membershipId: 'om_test', roleSlug: 'member' };
+// @ts-expect-error Role remains the consumer literal union.
+updateArgs.roleSlug = 'unknown';
+const publicArgs: FunctionArgs<PublicApi['account']['updateAccount']> = { name: 'Team' };
+// @ts-expect-error Caller identity is not a public argument.
+publicArgs.orgId = 'org_attacker';
+void exactRole; void publicArgs;
 const manifest: Manifest | undefined = undefined;
 void manifest;
 `,
@@ -192,14 +211,41 @@ export const listTodos = internalQuery({
 });
 `,
   );
+  await Bun.write(
+    join(consumer, 'convex/workos.ts'),
+    `import { v } from 'convex/values';
+import { createWorkOSFunctions } from ${JSON.stringify(packageSpecifier(packageJson.name, './workos'))};
+export const workos = createWorkOSFunctions({ role: v.union(v.literal('admin'), v.literal('member')), roles: ['admin', 'member'], adminRoles: ['admin'], defaultRole: 'member', getClient: () => { throw new Error('Discovery accessed WorkOS credentials'); }, getSessionIssuers: () => { throw new Error('Discovery accessed issuer configuration'); }, resolveIdentity: async () => { throw new Error('Discovery authenticated a user'); } });
+`,
+  );
+  const groups = {
+    account: ['getAccount', 'updateAccount'],
+    'account/members': ['listMembers', 'updateMemberRole', 'removeMember'],
+    'account/invitations': ['listInvitations', 'sendInvitation', 'resendInvitation', 'revokeInvitation'],
+    'account/apiKeys': ['listApiKeys', 'createApiKey', 'revokeApiKey'],
+    teams: ['listTeams', 'createTeam'],
+  };
+  for (const [path, names] of Object.entries(groups)) {
+    const group = path.split('/').at(-1)!;
+    const prefix = '../'.repeat(path.split('/').length);
+    await mkdir(join(consumer, 'convex', path), { recursive: true });
+    await Bun.write(
+      join(consumer, 'convex', path, 'internal.ts'),
+      `import { workos } from '${prefix}workos.js';\nexport const { ${names.join(', ')} } = workos.${group};\n`,
+    );
+    await Bun.write(
+      join(consumer, 'convex', path, 'index.ts'),
+      `import { workos } from '${prefix}workos.js';\nexport const { ${names.join(', ')} } = workos.public.${group};\n`,
+    );
+  }
   run(
     'bun',
     [
       '--eval',
       `import { generatePlatforms } from ${JSON.stringify(packageSpecifier(packageJson.name, './generate'))};
 const manifest = await generatePlatforms({ root: process.cwd(), outputDir: 'generated' });
-if (manifest.operations.length !== 1 || manifest.operations[0]?.name !== 'listTodos') {
-  throw new Error('Packed generator did not discover the native internal function.');
+if (manifest.operations.length !== 15 || !['getAccount', 'updateAccount', 'listMembers', 'updateMemberRole', 'removeMember', 'listInvitations', 'sendInvitation', 'resendInvitation', 'revokeInvitation', 'listApiKeys', 'createApiKey', 'revokeApiKey', 'listTeams', 'createTeam', 'listTodos'].every(name => manifest.operations.some(operation => operation.name === name))) {
+  throw new Error('Packed generator did not discover every native internal operation or included public duplicates.');
 }`,
     ],
     consumer,

@@ -1,5 +1,19 @@
 # Release verification
 
+## Reusable WorkOS accounts and teams in 0.2.0
+
+The optional `./workos` module owns all 14 account, team, member, invitation and user API-key operations, their native public wrappers, boundary validators and provider pagination. It also provides signed webhook handling with optional personal-account provisioning. Consumers configure authentication, roles and WorkOS access, then export the selected native functions.
+
+- Formatting, lint, typechecking, build and frozen dependency installation passed. The full package suite passed 74 tests with 284 assertions.
+- An independent security review passed the 30 new operation/webhook tests with 154 assertions and found no remaining blockers.
+- A fresh packed consumer imported the public exports, compiled exact role types and public argument types, discovered all 14 internal operations without public duplicates, and compiled generated TypeScript/Python clients and initialized project files.
+- Two development consumers compiled and deployed the candidate with Convex typechecking enabled.
+- Seventeen live checks passed against an owned disposable WorkOS development user: account identity, team/member/invitation/API-key reads, native pagination, client identity rejection, session-only creation denied for API keys, self-membership protection, foreign API-key rejection, invalid email/page-size rejection, account rename/restore, key revocation and post-revocation denial. The temporary key was revoked and the original organization name restored. No invitations were sent.
+
+Webhook provisioning and conflict recovery were exercised with native `convex-test` HTTP handlers and provider mocks; signature verification also used the real WorkOS SDK and HMAC. These checks do not claim a fresh live signup or native ChatGPT/Claude installation. Real Connect OAuth and host tool/UI verification remain unverified.
+
+## Earlier platform release verification
+
 Verified on 2026-10-07 using Bun 1.4.2, Node 24 and Python 3.12. This record distinguishes executed checks from remaining interactive verification.
 
 ## Executed

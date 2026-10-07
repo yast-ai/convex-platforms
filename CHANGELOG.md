@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Add reusable native Convex account, team, membership, invitation and user API-key operations through the optional `./workos` export, including public wrappers and boundary validators.
+- Configure role priorities, administrative roles, invitation defaults, trusted first-party session issuers and personal organization policy per application.
+- Add a signed WorkOS webhook handler with optional personal organization provisioning, conflict replay and synchronization after successful provisioning.
+- Verify native registration, authentication and organization isolation with `convex-test`, plus packed consumer types and discovery.
+
 ## 0.1.4
 
 - Resolve TypeScript path aliases when bundling MCP widgets, allowing shared application components to retain their existing imports.

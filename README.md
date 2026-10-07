@@ -14,6 +14,8 @@ Convex internal functions + validators + platforms metadata
     HTTP API · MCP tools · CLI · TypeScript/Python SDKs
 ```
 
+Optional [WorkOS account and team operations](docs/workos.md) supply native account, membership, invitation, API-key and team functions, including public wrappers and personal organization provisioning.
+
 Optional MCP Apps attach your React UI to tools. Optional project-level plugins bundle skills and MCP configuration for OpenAI and Claude. Plugins are separate from function-level interface selection.
 
 [![Watch the 90-second walkthrough](https://raw.githubusercontent.com/yast-ai/convex-platforms/main/docs/assets/overview.png)](https://github.com/yast-ai/convex-platforms/blob/main/media/walkthrough.mp4)

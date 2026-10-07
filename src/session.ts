@@ -4,7 +4,7 @@ import { homedir } from 'node:os';
 import { constants } from 'node:fs';
 import { siteOrigin } from './transport.js';
 import { join } from 'node:path';
-import { loginCli, refreshCli, type CliTokens } from './workos.js';
+import { loginCli, refreshCli, type CliTokens } from './workos-device.js';
 
 type AuthConfig = { clientId: string };
 type SavedSession = AuthConfig & {
