@@ -13,6 +13,14 @@ Choose the path matching your starting point. All three end with the same app-lo
 
 Official starting points: [Convex + AuthKit](https://docs.convex.dev/auth/authkit), [Convex dashboard](https://dashboard.convex.dev/), [WorkOS dashboard](https://dashboard.workos.com/).
 
+For an unconnected team, open the development deployment's **Settings → Integrations**, then click the plus button on **WorkOS**. The Authentication badge is a label, not the setup control. Choose **Create WorkOS Workspace**. This creates the team association; a deployment's environment is provisioned separately afterward.
+
+Workspace creation requires a team admin and an eligible verified email on the Convex profile. An email already used by another Convex-managed WorkOS integration cannot create a second workspace. If creation is disabled, verify another email in **Profile Settings → Emails**. Do not disconnect a working integration to reuse its email. Review the WorkOS terms during account creation. See [Convex's automatic AuthKit configuration](https://docs.convex.dev/auth/authkit/auto-provision).
+
+![An unconnected development deployment's WorkOS setup dialog](assets/convex-qa-workos-workspace.jpg)
+
+This screenshot was captured from a new development project. The disabled button shows an unmet workspace-creation prerequisite; it is not evidence of a connected integration.
+
 ## 2. Existing Convex with managed WorkOS
 
 Keep your schema, web authentication and HTTP routes. The initializer refuses to overwrite existing files. Import the typed internal builders from `convex/platforms.ts` for selected functions. Add the two route-mounting lines to existing `http.ts`.
@@ -71,3 +79,5 @@ Provider dashboard footage must show the actual configuration state. The reposit
 ![Three onboarding paths and MCP configuration](assets/workos-setup.png)
 
 This diagram summarizes setup. Follow the steps above for your deployment environment.
+
+The [WorkOS Connect dashboard capture](assets/workos-connect-dashboard.jpg) shows CIMD enabled and an exact development `/mcp` resource. The [Convex authentication capture](assets/convex-auth-dashboard.jpg) shows the corresponding deployed JWT providers. These captures are from a separate configured development demo, not the unconnected project above. Authentication and live host tests are tracked in [release evidence](release-evidence.md).

@@ -16,6 +16,10 @@ UI build tooling is optional. Install Vite, its React plugin, `vite-plugin-singl
 
 See the [React todo example](../examples/mcp-app/README.md) for the host bridge, structured results, native pagination, and a clearly labeled browser mock.
 
+![React example in the browser mock](assets/mcp-app-mock.jpg)
+
+The example also supports narrow layouts and host themes. [Mobile dark-theme capture](assets/mcp-app-mobile-dark.jpg). These captures verify the browser mock, which is labeled in the UI; actual host interaction is a separate check.
+
 Import presentational components from your web app when useful. Keep Convex web hooks and the MCP host bridge in separate wrappers. The MCP wrapper receives tool results and calls existing tools through the host; it does not embed bearer tokens or connect directly to Convex.
 
 The package React entry wraps the official MCP Apps bridge. Apply host theme/style context, show loading/errors, disable unsupported actions and refresh data through tools. Realtime subscriptions are not automatically created by attaching a UI.
