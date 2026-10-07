@@ -1,9 +1,26 @@
 # Organization-scoped todos
 
-This example demonstrates native internal functions exposed through API, MCP, CLI and SDKs. It owns its schema and authorization. No WorkOS account, organization or production deployment is provisioned automatically.
+This example includes native internal functions, schema, runtime mounting and JWT provider wiring for API, MCP, CLI and both SDKs. Application functions enforce ownership and organization isolation.
 
-Install the example dependencies with Bun. Before the first registry release, install the reviewed local tarball in this folder instead of the versioned registry dependency. Run `bunx convex-platforms init --name todos-example`: the example already supplies its typed `convex/platforms.ts`, so retain that file and add the runtime mount/auth wiring from the root onboarding guide manually. Generate before pushing to a development deployment.
+```sh
+cd examples/todos
+bun install
+bun run ports:generate
+```
 
-Use `listTodos` for organization-scoped paginated reads. `deleteTodo` permits only the creator or an organization admin. These are example application rules, not role defaults imposed by the library.
+Before the first registry release, replace the package dependency with the reviewed local tarball and run `bun install` instead. Do not run the initializer: this example already contains its complete wiring.
 
-Complete WorkOS environment and Connect configuration, test web/session or API-key auth, then run the CLI and MCP tool. Do not point this example at customer production data.
+Connect this directory to a development Convex project using `bunx convex dev --configure`. For a Convex-managed WorkOS environment, follow the [onboarding guide](../../docs/onboarding.md) to provision AuthKit first. Set `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, and `WORKOS_AUTHKIT_URL` on that deployment, then run `bun run dev` to generate and deploy. Keep local `.env.local` and generated outputs out of source control. The example does not create users, organizations or memberships.
+
+Enable WorkOS Connect CIMD and register the exact deployment `/mcp` resource. For API keys, create the `api:access` permission, enable it for user API keys and grant it to the actual organization membership role. Issue a user-owned, organization-scoped key.
+
+```sh
+bunx convex-platforms --site-url https://YOUR-DEPLOYMENT.convex.site doctor
+bunx convex-platforms --site-url https://YOUR-DEPLOYMENT.convex.site login
+bunx convex-platforms --site-url https://YOUR-DEPLOYMENT.convex.site todos create --text 'Hello'
+bunx convex-platforms --site-url https://YOUR-DEPLOYMENT.convex.site todos list --pagination-opts '{"numItems":10,"cursor":null}'
+```
+
+For automated verification, supply `CONVEX_PLATFORMS_TOKEN` through a secret manager. Confirm one authorized user can create, list and delete a test record, while a second organization cannot read or delete it. Client-supplied identity fields must fail. [Full verification sequence](../../docs/testing.md).
+
+`deleteTodo` permits only the creator or an organization admin. These are example application rules, not role defaults imposed by the library. Use only test records in a development deployment.
