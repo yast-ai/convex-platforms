@@ -12,9 +12,11 @@ The command creates `plugins/openai` with portable `plugin.json`, `mcp.json` and
 
 ## Local testing
 
-For OpenAI, add a repository marketplace at `.agents/plugins/marketplace.json` pointing to `./plugins/openai`, then install and authorize it in the intended desktop host. Use the current [OpenAI packaging instructions](https://developers.openai.com/plugins/build/plugins) for the marketplace schema and restart requirements.
+The generated OpenAI directory is a portable package for ChatGPT and Codex, but packaging does not install or authorize its remote MCP server. For current ChatGPT testing, open **ChatGPT Plugins**, choose the plus button, **Add custom MCP server**, enter the authenticated `/mcp` server URL and its connection details, accept the risk notice, then choose **Create as a plugin**. Open that plugin, select the plus button to install it, start a new **Work** chat, and select the plugin with `@` before performing a live operation. See the [OpenAI testing quickstart](https://developers.openai.com/plugins/quickstart).
 
-For Claude, use its plugin development/install workflow with `plugins/claude` and run `claude plugin validate` when Claude Code is installed. Install, complete OAuth and perform a live operation. [Claude plugin reference](https://code.claude.com/docs/en/plugins-reference).
+For local Codex development, add a repository marketplace at `.agents/plugins/marketplace.json` pointing to `./plugins/openai`, restart the desktop app, then install and authorize it in Codex. The portable `plugin.json` and `mcp.json` layout is valid for ChatGPT and Codex; use the [OpenAI packaging instructions](https://developers.openai.com/plugins/build/plugins) for the current schema and marketplace rules.
+
+For Claude Code, use `plugins/claude`: it needs its own `.claude-plugin/plugin.json` and `.mcp.json`, and is installed through a Claude Code marketplace or a local plugin directory. Run `claude plugin validate plugins/claude`, install it, complete OAuth, and perform a live operation. Claude.ai and Cowork have a separate distribution path and supported-component set; a Claude Code marketplace/plugin is not evidence that it works there. See the [Claude Code plugin overview](https://code.claude.com/docs/en/plugins) and [marketplace guide](https://code.claude.com/docs/en/plugin-marketplaces).
 
 A parsed manifest or successful raw MCP request does not prove a plugin installs or its UI works.
 

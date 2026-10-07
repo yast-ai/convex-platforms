@@ -45,7 +45,9 @@ See [WorkOS MCP documentation](https://workos.com/docs/authkit/mcp) and [Client 
 
 ## CLI device login and API keys
 
-Enable WorkOS CLI authentication in your environment and confirm device authorization works with the published WorkOS client ID. Organization selection happens during confirmation. A refreshed session must stay in that organization.
+The package CLI uses AuthKit's first-party public device flow. Configure the target WorkOS environment's normal AuthKit sign-in methods and use that environment's `WORKOS_CLIENT_ID`; there is no separate “enable CLI authentication” dashboard toggle or API call. The CLI requests `https://api.workos.com/user_management/authorize/device`, shows the verification URL and user code, then polls `https://api.workos.com/user_management/authenticate` with the device-code grant. It sends no WorkOS API key or client secret. Organization selection happens during confirmation. A refreshed session must stay in that organization.
+
+Creating a separate WorkOS Connect OAuth application is only for a different third-party CLI integration, not this package's CLI flow. If an app needs one, create it as **Public** in WorkOS Dashboard → Applications at creation time; it uses the AuthKit-domain Connect endpoints and requires its own consent flow. See [WorkOS CLI Auth](https://workos.com/docs/authkit/cli-auth) and [WorkOS Connect OAuth applications](https://workos.com/docs/authkit/connect/oauth).
 
 For API keys, create the `api:access` permission and grant it to the actual roles that may use APIs. Issue a user-owned key in the user's selected organization. Organization-owned or machine keys are rejected by this package because operations require a user identity.
 
