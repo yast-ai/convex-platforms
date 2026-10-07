@@ -12,7 +12,7 @@ Project React entry → self-contained HTML → content-hashed ui:// resource
 
 Create `platforms/ui/todos.html` with a root element and a module script pointing to `todos.tsx`. Add `ui: 'todos'` to the selected function, then regenerate. Multiple functions may reuse one UI entry.
 
-UI build tooling is optional. Install Vite, its React plugin, `vite-plugin-singlefile`, and your chosen CSS tooling in the consuming app. The generator reports missing build dependencies. React and React DOM are optional package peers.
+UI build tooling is optional. Install Vite, its React plugin, and `vite-plugin-singlefile` in the consuming app. For Tailwind v4 styles, also install `tailwindcss` and `@tailwindcss/vite`; the bundler loads that optional plugin when available. The generator reports missing build dependencies. React and React DOM are optional package peers. It uses an isolated build configuration, without loading the application's Vite or PostCSS configuration.
 
 See the [React todo example](../examples/mcp-app/README.md) for the host bridge, structured results, native pagination, and a clearly labeled browser mock.
 

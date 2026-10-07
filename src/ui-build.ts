@@ -50,14 +50,23 @@ export async function bundleUi(root: string, uiDir: string, name: string): Promi
       `UI packaging needs optional build dependencies. Install vite, @vitejs/plugin-react, and vite-plugin-singlefile in the consuming project (or add them to the root package exports/dependencies): ${(error as Error).message}`,
     );
   }
+  const tailwind = await import('@tailwindcss/vite').catch((error: NodeJS.ErrnoException) => {
+    if (
+      ['ERR_MODULE_NOT_FOUND', 'MODULE_NOT_FOUND'].includes(error.code ?? '') &&
+      error.message.includes('@tailwindcss/vite')
+    )
+      return undefined;
+    throw error;
+  });
   const result = await vite.build({
     root,
     configFile: false,
     envFile: false,
-    envPrefix: '__FUNCTION_PORTS_NEVER_MATCH__',
+    envPrefix: '__CONVEX_PLATFORMS_NEVER_MATCH__',
     publicDir: false,
     logLevel: 'error',
-    plugins: [react.default(), single.viteSingleFile()],
+    css: { postcss: {} },
+    plugins: [react.default(), ...(tailwind ? [tailwind.default()] : []), single.viteSingleFile()],
     build: { write: false, sourcemap: false, rollupOptions: { input: html } },
   });
   const output = (

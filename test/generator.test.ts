@@ -32,6 +32,32 @@ export const omittedTodo = internalQuery({ args: { ...identityFields }, returns:
 const publicDefinition = `${definition}\nObject.assign(listTodos, { isInternal: false });`;
 
 describe('generatePlatforms', () => {
+  test('bundles Tailwind widgets without loading application build configuration', async () => {
+    const root = await fixture(definition);
+    await mkdir(join(root, 'platforms/ui'), { recursive: true });
+    await Bun.write(
+      join(root, 'platforms/ui/todos.html'),
+      '<!doctype html><html><head><link rel="stylesheet" href="./todos.css"></head><body><main class="bg-blue-600 p-4">Todos</main></body></html>',
+    );
+    await Bun.write(
+      join(root, 'platforms/ui/todos.css'),
+      '@import "tailwindcss" source(none);\n@source "./todos.html";\n',
+    );
+    await Bun.write(
+      join(root, 'vite.config.ts'),
+      "throw new Error('Application Vite config must not load');\n",
+    );
+    await Bun.write(
+      join(root, 'postcss.config.js'),
+      "throw new Error('Application PostCSS config must not load');\n",
+    );
+    const widget = await bundleUi(root, 'platforms/ui', 'todos');
+    expect(widget.text).toContain('.bg-blue-600');
+    expect(widget.text).toContain('.p-4');
+    expect(widget.text).not.toMatch(/<(?:script|link)[^>]+(?:src|href)=/);
+    expect(widget.text).not.toContain('@import "tailwindcss"');
+  });
+
   test('discovers real native Convex internal query and mutations', async () => {
     const output = await mkdtemp(join(tmpdir(), 'convex-platforms-output-'));
     roots.push(output);

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- Bundle existing Tailwind v4 MCP widgets using the optional `@tailwindcss/vite` plugin.
+- Keep widget builds isolated from application Vite and PostCSS configuration; verify actual compiled utility styles in a regression test.
+
 ## 0.1.2
 
 - Add dashboard onboarding screenshots and a setup tour, including the unconnected integration, workspace dialog and connected integration steps. Label the edited dialog button and separate teams.
