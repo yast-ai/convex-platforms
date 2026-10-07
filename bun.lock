@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@yast-ai/function-ports",
+      "name": "@yast-ai/convex-platforms",
       "dependencies": {
         "@modelcontextprotocol/ext-apps": "^2.0.0",
         "@modelcontextprotocol/server": "2.0.0",

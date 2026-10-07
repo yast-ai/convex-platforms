@@ -17,7 +17,7 @@ import { v, type GenericValidator, type Infer, type PropertyValidators, type Obj
 import type { Platforms } from './contract.js';
 
 export const identityFields = { orgId: v.string(), userId: v.string(), role: v.string() };
-export const validatorMetadata = Symbol.for('yast.function-ports.validators');
+export const validatorMetadata = Symbol.for('yast.convex-platforms.validators');
 type Definition<Ctx, Args extends PropertyValidators, Returns extends GenericValidator> = {
   platforms?: Platforms;
   ui?: string;
