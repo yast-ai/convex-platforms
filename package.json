@@ -1,0 +1,63 @@
+{
+  "name": "@yast-ai/portloom",
+  "version": "0.1.0",
+  "description": "Expose Convex internal functions through WorkOS-authenticated HTTP APIs, MCP tools, CLIs and SDKs.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Yast AI",
+  "repository": { "type": "git", "url": "git+https://github.com/yast-ai/portloom.git" },
+  "homepage": "https://github.com/yast-ai/portloom#readme",
+  "bugs": { "url": "https://github.com/yast-ai/portloom/issues" },
+  "keywords": ["convex", "workos", "mcp", "mcp-apps", "openapi", "cli", "sdk"],
+  "engines": { "node": ">=22.14.0", "bun": ">=1.3.0" },
+  "files": ["dist", "templates", "README.md", "LICENSE", "NOTICE", "docs"],
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./functions": { "types": "./dist/functions.d.ts", "import": "./dist/functions.js" },
+    "./server": { "types": "./dist/server.d.ts", "import": "./dist/server.js" },
+    "./oauth": { "types": "./dist/oauth.d.ts", "import": "./dist/oauth.js" },
+    "./react": { "types": "./dist/react.d.ts", "import": "./dist/react.js" },
+    "./generate": "./dist/generate.js"
+  },
+  "bin": { "portloom": "./dist/cli.js" },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "build": "bun scripts/build.ts",
+    "test": "bun test",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun test && bun run build",
+    "prepack": "bun run build"
+  },
+  "peerDependencies": { "convex": ">=1.46.0 <2", "react": ">=18 <20", "react-dom": ">=18 <20" },
+  "peerDependenciesMeta": { "react": { "optional": true }, "react-dom": { "optional": true } },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
+    "@modelcontextprotocol/ext-apps": "^2.0.0",
+    "@workos-inc/node": "^10.0.0",
+    "commander": "^15.0.0",
+    "convex-helpers": "0.1.127",
+    "hono": "^4.13.13",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "typescript-eslint": "^8.0.0",
+    "typescript": "^5.9.0",
+    "prettier": "^3.0.0",
+    "convex": "^1.46.0",
+    "convex-test": "latest",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vite": "^8.0.0",
+    "@vitejs/plugin-react": "^6.0.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "vite-plugin-singlefile": "^2.3.0"
+  }
+}
