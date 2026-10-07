@@ -8,9 +8,9 @@ bun install
 bun run ports:generate
 ```
 
-Before the first registry release, replace the package dependency with the reviewed local tarball and run `bun install` instead. Do not run the initializer: this example already contains its complete wiring.
+For local package development, replace the package dependency with a reviewed local tarball and run `bun install`. Do not run the initializer: this example already contains its complete wiring.
 
-Connect this directory to a development Convex project using `bunx convex dev --configure`. For a Convex-managed WorkOS environment, follow the [onboarding guide](../../docs/onboarding.md) to provision AuthKit first. Set `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, and `WORKOS_AUTHKIT_URL` on that deployment, then run `bun run dev` to generate and deploy. Keep local `.env.local` and generated outputs out of source control. The example does not create users, organizations or memberships.
+Create or select a development Convex deployment in the dashboard. For a Convex-managed WorkOS environment, follow the [onboarding guide](../../docs/onboarding.md) to provision AuthKit first. Set `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, and the public AuthKit origin `WORKOS_AUTHKIT_URL` on that deployment before running any command that deploys this example. Then connect this directory to the selected project with `bunx convex dev --configure` and use `bun run dev` afterward to generate and deploy. Keep local `.env.local` and generated outputs out of source control. The example does not create users, organizations or memberships.
 
 Enable WorkOS Connect CIMD and register the exact deployment `/mcp` resource. For API keys, create the `api:access` permission, enable it for user API keys and grant it to the actual organization membership role. Issue a user-owned, organization-scoped key.
 

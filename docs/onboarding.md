@@ -7,9 +7,10 @@ Choose the path matching your starting point. All three end with the same app-lo
 1. Create a Convex project with `bunx create-convex@latest`. Select your framework and AuthKit as the authentication option.
 2. Start the generated app. Follow the Convex onboarding prompts to create a Convex-managed WorkOS team. Account-level association enables automatic environment provisioning and configuration for eligible deployments. Team/project administrator access is required for shared production setup.
 3. Confirm the selected Convex deployment is the intended development environment. Finish the template's real sign-in flow before adding interfaces.
-4. Install this package, run `convex-platforms init`, and follow `platforms/SETUP.md`.
-5. Configure WorkOS Connect for MCP as described below. Managed AuthKit configuration is not evidence that CIMD and MCP resource registration are enabled.
-6. Add one organization-scoped example operation, generate, deploy to development, and execute it as an authorized user.
+4. Before mounting package routes or making the first package-enabled deployment, set that deployment's server-side `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, and `WORKOS_AUTHKIT_URL`. The last value is the public HTTPS AuthKit origin, with no path, from the matching WorkOS environment. Convex supplies `CONVEX_SITE_URL`. Managed provisioning does not automatically supply this package-specific AuthKit URL variable. Missing values prevent route initialization.
+5. Install this package, run `convex-platforms init`, and follow `platforms/SETUP.md`.
+6. Configure WorkOS Connect for MCP as described below. Managed AuthKit configuration is not evidence that CIMD and MCP resource registration are enabled.
+7. Add one organization-scoped example operation, generate, deploy to development, and execute it as an authorized user.
 
 Official starting points: [Convex + AuthKit](https://docs.convex.dev/auth/authkit), [Convex dashboard](https://dashboard.convex.dev/), [WorkOS dashboard](https://dashboard.workos.com/).
 

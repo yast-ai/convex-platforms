@@ -66,6 +66,8 @@ bun run ports:generate
 bunx convex dev
 ```
 
+Before that first deployment, set `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, and the trusted public AuthKit origin `WORKOS_AUTHKIT_URL` on the selected Convex deployment. Missing settings prevent route initialization. Follow `platforms/SETUP.md` for authentication wiring.
+
 Generate before every deployment. Keep generated outputs out of source control and regenerate in CI. Generation never deploys or creates provider accounts.
 
 ## Choose interfaces
