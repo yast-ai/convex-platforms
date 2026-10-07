@@ -3,3 +3,4 @@ dist
 bun.lock
 *.svg
 media/walkthrough-source/assets
+media/setup-tour-source/assets
