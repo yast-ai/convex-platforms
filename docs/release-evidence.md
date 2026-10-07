@@ -1,17 +1,19 @@
-# Initial release verification
+# Release verification
 
 Verified on 2026-10-07 using Bun 1.4.2, Node 24 and Python 3.12. This record distinguishes executed checks from remaining interactive verification.
 
 ## Executed
 
 - Formatting, linting, TypeScript checking and build passed.
-- 43 tests passed, including native Convex query/mutation/action discovery, selection flags, pagination contracts, identity stripping, tenant isolation, official Streamable HTTP MCP client interoperability, session rotation and real TypeScript/Python loopback transports.
-- A packed installation imports the public exports, compiles typed native builders, executes the installed Node and Bun binaries, generates from real Convex builders, and compiles generated SDKs.
+- 44 tests passed, including native Convex query/mutation/action discovery, selection flags, pagination contracts, identity stripping, tenant isolation, official Streamable HTTP MCP client interoperability, session rotation, isolated Tailwind and TypeScript alias bundling, and real TypeScript/Python loopback transports.
+- A packed installation imports the public exports, compiles typed native builders and all initialized Convex integration files, executes the installed Node and Bun binaries, generates from real Convex builders, and compiles generated SDKs.
 - A fresh Convex development project `yast-ai/convex-platforms-demo`, deployment `hip-lark-939`, provisioned a managed WorkOS environment. CIMD was enabled and its exact `/mcp` resource registered. The package installed from the reviewed tarball and deployed successfully.
 - Real WorkOS user API keys resolved the active `demo-builder` organization membership role. API create/list/delete returned 200. A second organization saw no records and could not delete the first organization's record (404). Client identity forgery returned 400. The application's structured `invalid_text` error preserved its safe 400 status.
 - The installed CLI discovered the deployed commands and completed create/list/delete. Both generated TypeScript and Python SDKs completed the same sequence against the deployed API.
 - The installed npm CLI completed real WorkOS device authorization in Chrome with a disposable development user, including WorkOS organization selection. Device-authenticated create/list/delete passed. Refresh credentials rotated without organization drift, the private session stored only the refresh token and organization/client identifiers with directory mode 0700 and file mode 0600, logout removed it, and a subsequent operation was rejected.
 - The 90-second onboarding video rendered and its decoded frames were inspected. Its provider setup scenes are labeled diagrams.
+- The 74-second setup tour rendered and its decoded frames were inspected. It shows the actual QA WorkOS plus button, the actual QA workspace dialog with only its button appearance edited, and the actual connected Yast integration. Edited button appearance and separate teams are labeled.
+- Both existing TinyAPK widget sources bundled successfully into standalone HTML, retaining Tailwind styling and shared-component aliases. This is bundling evidence; actual host authorization and interaction remain separate checks.
 
 Real membership deactivation stopped API access immediately (401); reactivation restored access (200).
 
@@ -38,3 +40,13 @@ sha512-og1FsdyAxIdxiQlRnjolqlfHi1D4MgryQU5hsCh4HROFjZv9jZE8bRFr4WXgOOisrxY6PmaeX
 A completely fresh consumer installed the exact version from the public registry, ran `init`, generated all three native todo operations, passed the generation check and executed the installed CLI help. The development demo also replaced its local tarball dependency with registry version `0.1.1`.
 
 No long-lived npm publishing token was stored in GitHub. The initializer does not configure a consuming application's deployment CI; each app must generate before its own deployment.
+
+### Version 0.1.4
+
+The [matching CI](https://github.com/yast-ai/convex-platforms/actions/runs/37604590777) and [trusted publication](https://github.com/yast-ai/convex-platforms/actions/runs/37604590988) passed at source `d5739e6a028794d9149ceab28772f47fb1cc2b27`. The publish step ran, and npm's public registry subsequently returned version `0.1.4`, its tarball URL and integrity. [Signed provenance](https://search.sigstore.dev/?logIndex=3128795525).
+
+```text
+sha512-HaO7xoLWhJSrKY8KJKeVZ32mJZYVqwRkmX8XVKXRysxUxemL97IoSuT3G8U8iK5oZu/k6qe5OVQHtZxynWyQ6Q==
+```
+
+The [public GitHub release](https://github.com/yast-ai/convex-platforms/releases/tag/v0.1.4) includes both tutorial videos.
