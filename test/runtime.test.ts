@@ -373,5 +373,16 @@ describe('Convex Platforms runtime', () => {
         },
       }),
     ).toThrow('HTTPS');
+    expect(() =>
+      createPlatformServer({
+        manifest,
+        workos: {
+          clientId: 'x',
+          apiKey: 'x',
+          authkitUrl: 'https://user:pass@auth.example.com',
+          siteUrl: 'https://app.example.com',
+        },
+      }),
+    ).toThrow('credentials');
   });
 });

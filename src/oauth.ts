@@ -40,6 +40,8 @@ export function createMcpOAuth(authkitUrl: string, siteUrl: string): McpOAuth {
   if (issuer.pathname !== '/' || issuer.search || issuer.hash)
     throw new Error('workos.authkitUrl must be an origin without a path, query, or hash');
   const site = httpsUrl(siteUrl, 'workos.siteUrl');
+  if (site.pathname !== '/' || site.search || site.hash)
+    throw new Error('workos.siteUrl must be an origin without a path, query, or hash');
   const resource = new URL('/mcp', site);
   const metadataUrl = new URL(mcpMetadataPath, resource).href;
   return {
