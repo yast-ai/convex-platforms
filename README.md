@@ -21,7 +21,7 @@ Optional MCP Apps attach your React UI to tools. Optional project-level plugins 
 Requires an existing Convex project, Bun 1.3+, Node 22.14+, and a WorkOS AuthKit environment. New to either service? Start with the [three onboarding paths](docs/onboarding.md).
 
 ```sh
-bun add @yast-ai/convex-platforms
+bun add @disposabl/convex-platforms
 bunx convex-platforms init --name my-app
 ```
 
@@ -89,7 +89,7 @@ Arguments are flat JSON objects. Authentication fields never appear in generated
 
 Set server-side `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, and `WORKOS_AUTHKIT_URL` on the correct Convex deployment. `CONVEX_SITE_URL` is supplied by Convex. Keep credentials out of client bundles and generated artifacts.
 
-Configure Convex JWT verification using `getWorkOSAuthProviders` from `@yast-ai/convex-platforms/oauth`. Preserve existing providers when integrating an existing app. WorkOS Connect must also enable Client ID Metadata Documents, known as CIMD, and register the exact deployment `/mcp` URL as a resource indicator. [Detailed setup](docs/onboarding.md).
+Configure Convex JWT verification using `getWorkOSAuthProviders` from `@disposabl/convex-platforms/oauth`. Preserve existing providers when integrating an existing app. WorkOS Connect must also enable Client ID Metadata Documents, known as CIMD, and register the exact deployment `/mcp` URL as a resource indicator. [Detailed setup](docs/onboarding.md).
 
 The HTTP runtime validates WorkOS user API keys with `api:access`, or accepts a verified WorkOS session. MCP uses WorkOS Connect with its exact issuer and resource audience. Every authenticated request resolves current active organization membership and forwards trusted flat `orgId`, `userId`, `role` fields to the internal function. App functions still enforce organization isolation and resource ownership.
 

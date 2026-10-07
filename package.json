@@ -1,5 +1,5 @@
 {
-  "name": "@yast-ai/convex-platforms",
+  "name": "@disposabl/convex-platforms",
   "version": "0.1.0",
   "description": "Expose Convex internal functions through WorkOS-authenticated HTTP APIs, MCP tools, CLIs and SDKs.",
   "type": "module",

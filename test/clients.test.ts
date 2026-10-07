@@ -17,10 +17,10 @@ const operation: Operation = {
 };
 describe('generated clients', () => {
   test('uses runtime URL/token transport and preserves nested resource methods', async () => {
-    const ts = await generateClients([operation], 'sdk-typescript', '@yast-ai/convex-platforms');
+    const ts = await generateClients([operation], 'sdk-typescript', '@disposabl/convex-platforms');
     expect(ts['sdk-typescript.ts']).toContain('new URL(siteUrl)');
     expect(ts['sdk-typescript.ts']).toContain('"todos"');
-    const py = await generateClients([operation], 'sdk-python', '@yast-ai/convex-platforms');
+    const py = await generateClients([operation], 'sdk-python', '@disposabl/convex-platforms');
     expect(py['sdk-python.py']).toContain('def get');
   });
 });

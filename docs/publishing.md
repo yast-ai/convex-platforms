@@ -1,10 +1,10 @@
 # Publishing Convex Platforms
 
-`@yast-ai/convex-platforms` is released from `main` by `.github/workflows/publish.yml` after a committed `package.json` version change. The workflow does not create a commit, tag, release, or version bump. This prevents a publish from triggering another publish cycle.
+`@disposabl/convex-platforms` is released from `main` by `.github/workflows/publish.yml` after a committed `package.json` version change. The workflow does not create a commit, tag, release, or version bump. This prevents a publish from triggering another publish cycle.
 
 ## Before the first release
 
-1. Create the `yast-ai` organization on npm and ensure the release maintainer has verified email and two-factor authentication.
+1. Use the `disposabl` organization on npm and ensure the release maintainer has verified email and two-factor authentication.
 2. Publish the reviewed initial version manually with `npm publish --access public`.
 3. On that package's npm Settings page, configure a GitHub Actions trusted publisher with organization `yast-ai`, repository `convex-platforms`, and workflow filename `publish.yml`.
 4. Complete the first trusted publish within two days, then set publishing access to require two-factor authentication and disallow tokens.
