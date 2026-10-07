@@ -1,5 +1,19 @@
 # Release verification
 
+## One-file WorkOS selection in 0.2.1
+
+Consumers now select native internal functions from `workos.functions` in one Convex module. Optional authenticated web/mobile functions use `workos.publicFunctions`. Canonical resource metadata preserves API, MCP, CLI and SDK naming while native references retain the actual source module. Consumers can omit builtins, replace them with custom native operations, and select interfaces independently per operation.
+
+- All 90 package tests passed with 314 assertions, plus format, lint, typecheck and build.
+- Independent source/security review found no blockers. A separate selected suite passed 42 tests, with one network-gated skip; the full suite subsequently passed with network access.
+- A fresh packed consumer verified public exports, exact role declarations, identity-free public arguments, selected one-file discovery, a custom replacement, omitted operations, public duplicate exclusion, native module references, CLI execution and generated TypeScript/Python clients.
+- Two development consumers compiled and deployed with Convex typechecking enabled. Each generated 17 operations and one Todo widget; deployed OpenAPI matched all 17 generated HTTP paths.
+- Seventeen live disposable WorkOS checks passed again, including read operations, pagination, identity rejection, session-only creation restrictions, self-membership protection, foreign key rejection, validation, account rename/restore and API-key revocation. The temporary key was revoked and the original organization name restored; no invitations or OAuth grants were initiated.
+
+These checks do not verify native ChatGPT/Claude installation or live Connect authorization.
+
+Release source `c10140e6b38801cf637a638a16307631e73d3885` passed [CI](https://github.com/yast-ai/convex-platforms/actions/runs/37621336189) and [actual trusted publishing](https://github.com/yast-ai/convex-platforms/actions/runs/37621336274). The public registry tarball was downloaded and its SHA-512 matched `sha512-/SFM1hPAxfFHvR5PTi1zka/VFVk4lUQkdiOPgwObjQBNKSa0NZ+83H4zOHoaNpC7xgsf3XFlwHfkxtWUherFAw==`. [Signed provenance](https://search.sigstore.dev/?logIndex=3131090494) records the trusted workflow. Both development consumers installed exact registry version `0.2.1` and passed frozen dependency and generation-freshness checks; the application also passed final format, lint, typecheck and build.
+
 ## Reusable WorkOS accounts and teams in 0.2.0
 
 The optional `./workos` module owns all 14 account, team, member, invitation and user API-key operations, their native public wrappers, boundary validators and provider pagination. It also provides signed webhook handling with optional personal-account provisioning. Consumers configure authentication, roles and WorkOS access, then export the selected native functions.
