@@ -161,7 +161,7 @@ try {
   await Bun.write(
     join(consumer, 'index.ts'),
     `import { v } from 'convex/values';
-import type { GenericDataModel, ApiFromModules, FunctionArgs, FunctionReturnType } from 'convex/server';
+import { defineSchema, defineTable, type DataModelFromSchemaDefinition, type GenericDataModel, type ApiFromModules, type FunctionArgs, type FunctionReturnType } from 'convex/server';
 import { createPlatformFunctions, identityFields } from ${JSON.stringify(packageSpecifier(packageJson.name, './functions'))};
 import type { Manifest } from ${JSON.stringify(packageJson.name)};
 const builders = createPlatformFunctions<GenericDataModel>();
@@ -185,6 +185,29 @@ const publicArgs: FunctionArgs<PublicApi['workos']['updateAccount']> = { name: '
 // @ts-expect-error Caller identity is not a public argument.
 publicArgs.orgId = 'org_attacker';
 void exactRole; void publicArgs;
+import { createPlatforms } from ${JSON.stringify(packageSpecifier(packageJson.name, './platforms'))};
+const schema = defineSchema({ todos: defineTable({ text: v.string() }) });
+type ConsumerDataModel = DataModelFromSchemaDefinition<typeof schema>;
+const integration = createPlatforms<ConsumerDataModel, 'admin' | 'member'>({
+  role: v.union(v.literal('admin'), v.literal('member')), roles: ['admin', 'member'], adminRoles: ['admin'], defaultRole: 'member',
+  getServerConfig: () => { throw new Error('No settings during discovery'); },
+  getSessionIssuers: () => ['https://api.workos.com/'],
+});
+integration.internalMutation({ args: { ...identityFields, text: v.string() }, returns: v.id('todos'), handler: (ctx, args) => {
+  // @ts-expect-error Native builders retain the consumer DataModel table names.
+  void ctx.db.insert('missing', { text: args.text });
+  return ctx.db.insert('todos', { text: args.text });
+} });
+type CombinedApi = ApiFromModules<{ platforms: typeof integration.functions }>;
+type CombinedPublicApi = ApiFromModules<{ platforms: typeof integration.publicFunctions }>;
+type CombinedRole = FunctionReturnType<CombinedApi['platforms']['getAccount']>['role'];
+const combinedRole: CombinedRole = 'member';
+// @ts-expect-error Combined factory preserves exact literal roles.
+const rejectedRole: CombinedRole = 'unknown';
+const combinedPublicArgs: FunctionArgs<CombinedPublicApi['platforms']['updateAccount']> = { name: 'Team' };
+// @ts-expect-error Public aliases never accept client identity.
+combinedPublicArgs.orgId = 'org_attacker';
+void combinedRole; void rejectedRole; void combinedPublicArgs;
 const manifest: Manifest | undefined = undefined;
 void manifest;
 `,
@@ -222,12 +245,12 @@ export const workos = createWorkOSFunctions({ role: v.union(v.literal('admin'), 
     join(consumer, 'convex/workos.ts'),
     `import { v } from 'convex/values';
 import type { GenericDataModel } from 'convex/server';
-import { createWorkOSFunctions } from ${JSON.stringify(packageSpecifier(packageJson.name, './workos'))};
-import { createPlatformFunctions, identityFields } from ${JSON.stringify(packageSpecifier(packageJson.name, './functions'))};
-const workos = createWorkOSFunctions({ role: v.union(v.literal('admin'), v.literal('member')), roles: ['admin', 'member'], adminRoles: ['admin'], defaultRole: 'member', getClient: () => { throw new Error('Discovery accessed WorkOS credentials'); }, getSessionIssuers: () => { throw new Error('Discovery accessed issuer configuration'); }, resolveIdentity: async () => { throw new Error('Discovery authenticated a user'); } });
+import { createPlatforms } from ${JSON.stringify(packageSpecifier(packageJson.name, './platforms'))};
+import { identityFields } from ${JSON.stringify(packageSpecifier(packageJson.name, './functions'))};
+const workos = createPlatforms({ role: v.union(v.literal('admin'), v.literal('member')), roles: ['admin', 'member'], adminRoles: ['admin'], defaultRole: 'member', getServerConfig: () => { throw new Error('Discovery accessed deployment settings'); }, getSessionIssuers: () => { throw new Error('Discovery accessed issuer configuration'); }, resolveIdentity: async () => { throw new Error('Discovery authenticated a user'); } });
 export const { updateAccount, listMembers, listTeams } = workos.functions;
 export const { updateAccount: updateAccountPublic } = workos.publicFunctions;
-const { internalQuery } = createPlatformFunctions<GenericDataModel>();
+const { internalQuery } = workos;
 export const getAccount = internalQuery({ resource: ['account'], platforms: true, args: identityFields, returns: v.string(), handler: () => 'custom' });
 `,
   );
@@ -268,6 +291,12 @@ if (manifest.operations.find(operation => operation.name === 'getAccount')?.func
   run('python3', ['-m', 'py_compile', generatedPython], consumer);
 
   run(installedBin, ['init', '--name', 'packed-consumer'], consumer);
+  assert(
+    !(await Bun.file(join(consumer, 'convex/ports.ts')).exists()),
+    'Initializer must use one combined integration without a ports module.',
+  );
+  await rm(join(consumer, 'platforms/generated'), { recursive: true, force: true });
+  run(installedBin, ['generate', '--name', 'packed-consumer'], consumer);
   await mkdir(join(consumer, 'convex/_generated'), { recursive: true });
   await Bun.write(
     join(consumer, 'convex/_generated/dataModel.d.ts'),
@@ -284,7 +313,6 @@ if (manifest.operations.find(operation => operation.name === 'getAccount')?.func
       '--target',
       'ES2022',
       '--resolveJsonModule',
-      'convex/ports.ts',
       'convex/platforms.ts',
       'convex/http.ts',
       'convex/auth.config.ts',

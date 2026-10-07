@@ -31,13 +31,19 @@ bun add @disposabl/convex-platforms
 bunx convex-platforms init --name my-app
 ```
 
-The initializer creates `convex/platforms.ts`, `convex/ports.ts`, a bootstrap manifest, setup instructions and generation scripts. It preserves existing authentication and HTTP routes. For an existing `http.ts`, add these two lines around your current router:
+For account/team operations and custom business functions together, use one [`createPlatforms` integration](docs/workos.md#configure-once) in `convex/platforms.ts`. It supplies the typed internal builders, selected native WorkOS operations and HTTP routes. Export only the operations you need; your own functions can replace any builtin. The factory reads no credentials and imports no generated files during discovery.
+
+Mount it alongside application routes in `convex/http.ts`:
 
 ```ts
-import { platforms } from './ports';
+import type { Manifest } from '@disposabl/convex-platforms';
+import manifest from '../platforms/generated/manifest.json';
+import { registerRoutes } from './platforms';
 
-platforms.registerRoutes(http);
+registerRoutes(http, manifest as Manifest);
 ```
+
+The initializer creates this single typed integration, a bootstrap manifest, setup instructions and generation scripts. It preserves existing authentication and HTTP routes. No account/team builtin is exported by default. Configure your WorkOS roles and a trusted authentication callback before exporting optional public aliases. The omitted callback rejects all public calls.
 
 Use the new internal builders in a feature folder:
 

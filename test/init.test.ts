@@ -28,6 +28,14 @@ describe('project initialization', () => {
       const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
       expect(pkg.scripts.dev).toBe('convex dev');
       expect(pkg.scripts['ports:generate']).toContain('test-app');
+      const integration = await readFile(join(root, 'convex/platforms.ts'), 'utf8');
+      expect(integration).toContain('createPlatforms<DataModel, Infer<typeof role>>');
+      expect(integration).not.toContain('manifest.json');
+      expect(await Bun.file(join(root, 'convex/ports.ts')).exists()).toBe(false);
+      expect(await Bun.file(join(root, 'convex/workos.ts')).exists()).toBe(false);
+      await expect(initializeProject({ root, name: 'test-app' })).resolves.toMatchObject({
+        httpNeedsMount: true,
+      });
     } finally {
       await rm(root, { recursive: true, force: true });
     }

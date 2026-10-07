@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2
+
+- Add `createPlatforms` as one integration for typed native builders, selected WorkOS operations, authenticated HTTP routes and an optional signed webhook.
+- Make the initializer create one combined integration with optional builtin exports and public aliases that reject requests until trusted authentication is configured.
+- Load deployment settings and initialize the server only when registering routes. Function discovery needs neither credentials nor a generated manifest import.
+- Verify combined registration, native function types, omitted operations, custom replacements and webhook signature enforcement.
+
 ## 0.2.1
 
 - Configure and select WorkOS account/team operations in one Convex file with flat `functions` and optional `publicFunctions` exports; existing grouped exports remain supported.

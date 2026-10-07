@@ -23,10 +23,48 @@ export async function initializeProject({ root = '.', name = 'my-app' }: { root?
     openapi: { openapi: '3.1.0', info: { title: name, version: '1.0.0' }, paths: {} },
   };
   const files: Record<string, string> = {
-    'convex/platforms.ts': `import { createPlatformFunctions, identityFields } from '@disposabl/convex-platforms/functions';\nimport type { DataModel } from './_generated/dataModel';\nexport const { internalQuery, internalMutation, internalAction } = createPlatformFunctions<DataModel>();\nexport { identityFields };\n`,
-    'convex/ports.ts': `import { createPlatformServer } from '@disposabl/convex-platforms/server';\nimport type { Manifest } from '@disposabl/convex-platforms';\nimport manifest from '../platforms/generated/manifest.json';\nexport const platforms = createPlatformServer({\n  manifest: manifest as Manifest,\n  workos: {\n    clientId: process.env.WORKOS_CLIENT_ID ?? '',\n    apiKey: process.env.WORKOS_API_KEY ?? '',\n    authkitUrl: process.env.WORKOS_AUTHKIT_URL ?? '',\n    siteUrl: process.env.CONVEX_SITE_URL ?? '',\n  },\n});\n`,
+    'convex/platforms.ts': `import { v, type Infer } from 'convex/values';
+import { createPlatforms } from '@disposabl/convex-platforms/platforms';
+import type { DataModel } from './_generated/dataModel';
+
+const role = v.union(v.literal('admin'), v.literal('member'));
+const platforms = createPlatforms<DataModel, Infer<typeof role>>({
+  role, roles: ['admin', 'member'], adminRoles: ['admin'], defaultRole: 'member',
+  getServerConfig: () => ({
+    clientId: process.env.WORKOS_CLIENT_ID ?? '', apiKey: process.env.WORKOS_API_KEY ?? '',
+    authkitUrl: process.env.WORKOS_AUTHKIT_URL ?? '', siteUrl: process.env.CONVEX_SITE_URL ?? '',
+  }),
+  getSessionIssuers: () => ['https://api.workos.com/', \`https://api.workos.com/user_management/\${process.env.WORKOS_CLIENT_ID}\`],
+});
+export const { internalQuery, internalMutation, internalAction, registerRoutes } = platforms;
+export const identityFields = platforms.validators.identityFields;
+// Optional: export const { getAccount, listMembers } = platforms.functions;
+// Public aliases require a trusted resolveIdentity callback in the configuration above.
+`,
     'platforms/generated/manifest.json': JSON.stringify(empty, null, 2) + '\n',
-    'platforms/SETUP.md': `# ${name} setup\n\nUse the internal builders exported from convex/platforms.ts for selected operations. Include flat identityFields in args and enforce resource ownership inside each function.\n\nAdd these two lines to convex/http.ts if they were not added automatically:\n\n\`\`\`ts\nimport { platforms } from './ports';\nplatforms.registerRoutes(http);\n\`\`\`\n\nBefore the first package-enabled convex dev or deployment, set server-side WORKOS_CLIENT_ID, WORKOS_API_KEY, and WORKOS_AUTHKIT_URL on the selected Convex deployment. WORKOS_AUTHKIT_URL is the matching environment's trusted public HTTPS AuthKit origin with no path; managed provisioning does not automatically set this package-specific variable. Convex supplies CONVEX_SITE_URL. Missing settings prevent route initialization. Never put server keys in VITE_ variables. Configure existing auth.config.ts with getWorkOSAuthProviders from @disposabl/convex-platforms/oauth, preserving your other providers. See the package onboarding guide before changing providers.\n\nEnable WorkOS Connect CIMD and register the exact deployment /mcp resource audience. Generation cannot enable dashboard settings. Use bun run ports:generate before convex dev or deployment.\n\nThe generated manifest stays in platforms/generated. Generate first in CI. Add that directory to .gitignore once your generation step is wired.\n\nGenerated SDKs and plugin bundles are application artifacts with their own names/releases; Convex Platforms is the shared runtime/tooling package.\n`,
+    'platforms/SETUP.md': `# ${name} setup
+
+One convex/platforms.ts integration supplies native internal builders, optional WorkOS account/team functions and HTTP registration. Custom business operations import the builders and identityFields from that file. Enforce resource ownership inside each function.
+
+If convex/http.ts already exists, preserve its router and add:
+
+\`\`\`ts
+import type { Manifest } from '@disposabl/convex-platforms';
+import manifest from '../platforms/generated/manifest.json';
+import { registerRoutes } from './platforms';
+registerRoutes(http, manifest as Manifest);
+\`\`\`
+
+Before deploying, set WORKOS_CLIENT_ID, WORKOS_API_KEY and WORKOS_AUTHKIT_URL on the selected Convex deployment. WORKOS_AUTHKIT_URL must be that environment's trusted public HTTPS AuthKit origin with no path. Convex supplies CONVEX_SITE_URL. Never expose credentials through VITE_ variables. Existing auth.config.ts is preserved; merge getWorkOSAuthProviders from @disposabl/convex-platforms/oauth with your current providers.
+
+Match the role validator, roles, adminRoles and defaultRole to your WorkOS environment. The generated defaults use admin/member. No builtin is exported by default. Destructure only the operations you want from platforms.functions. Optional platforms.publicFunctions aliases deny every call until you configure resolveIdentity to resolve trusted orgId, userId and role from ctx.auth. Reject Connect tokens and client-supplied identity in that callback. Keep custom public wrappers if your app already has them.
+
+Add webhook configuration to the same createPlatforms call if you need signed event synchronization or personal organization provisioning. See the package WorkOS guide for the optional policy and callbacks.
+
+Enable WorkOS Connect CIMD and register the exact deployment /mcp resource audience. Generation cannot change dashboard settings. Use bun run ports:generate before convex dev or deployment. The integration imports no generated manifest, so first generation works without generated files or credentials. Only http.ts imports the manifest, and discovery skips that file.
+
+Keep platforms/generated out of source control and generate first in CI. Generated SDKs and plugin bundles are application artifacts with their own names/releases.
+`,
   };
   const authPath = resolve(directory, 'convex/auth.config.ts');
   if (!(await exists(authPath)))
@@ -39,7 +77,7 @@ export async function initializeProject({ root = '.', name = 'my-app' }: { root?
   });
   if (http === null)
     files['convex/http.ts'] =
-      `import { httpRouter } from 'convex/server';\nimport { platforms } from './ports';\nconst http = httpRouter();\nplatforms.registerRoutes(http);\nexport default http;\n`;
+      `import { httpRouter } from 'convex/server';\nimport type { Manifest } from '@disposabl/convex-platforms';\nimport manifest from '../platforms/generated/manifest.json';\nimport { registerRoutes } from './platforms';\nconst http = httpRouter();\nregisterRoutes(http, manifest as Manifest);\nexport default http;\n`;
   const updates = {
     ...pkg.scripts,
     'ports:generate': `convex-platforms generate --name ${name}`,

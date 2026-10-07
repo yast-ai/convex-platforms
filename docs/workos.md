@@ -1,29 +1,31 @@
 # Reusable WorkOS accounts and teams
 
-The optional `@disposabl/convex-platforms/workos` export supplies account, team, member, invitation and user API-key operations. Their business logic, authorization policies, validators, pagination and native public wrappers live in the package. Your app provides authentication and lazy WorkOS configuration, then exports only the operations it wants from one `convex/workos.ts` file.
+The optional `@disposabl/convex-platforms/workos` export supplies account, team, member, invitation and user API-key operations. Their business logic, authorization policies, validators, pagination and native public wrappers live in the package. Your app provides authentication and lazy WorkOS configuration, then exports only the operations it wants from one `convex/platforms.ts` file. The same integration supplies typed internal builders, HTTP routes and the optional signed webhook. Its SDK client is lazy and shared within that integration; provide `getClient` to reuse your own client.
 
 Functions run in the consuming application's Convex deployment. They do not create component tables or use a separate database. WorkOS remains the source of organizations, memberships, invitations and user API keys.
 
 ## Configure once
 
 ```ts
-// convex/workos.ts
-import { WorkOS } from '@workos-inc/node';
-import { v } from 'convex/values';
-import { createWorkOSFunctions } from '@disposabl/convex-platforms/workos';
+// convex/platforms.ts
+import { v, type Infer } from 'convex/values';
+import { createPlatforms } from '@disposabl/convex-platforms/platforms';
+import type { DataModel } from './_generated/dataModel';
 import { requireUser } from './auth';
 import { env } from './_generated/server';
 
-let client: WorkOS | undefined;
-const workos = createWorkOSFunctions({
-  role: v.union(v.literal('admin'), v.literal('member')),
+const role = v.union(v.literal('admin'), v.literal('member'));
+const platforms = createPlatforms<DataModel, Infer<typeof role>>({
+  role,
   roles: ['admin', 'member'],
   adminRoles: ['admin'],
   defaultRole: 'member',
-  getClient: () =>
-    (client ??= new WorkOS(env.WORKOS_API_KEY, {
-      clientId: env.WORKOS_CLIENT_ID,
-    })),
+  getServerConfig: () => ({
+    clientId: env.WORKOS_CLIENT_ID,
+    apiKey: env.WORKOS_API_KEY,
+    authkitUrl: env.WORKOS_AUTHKIT_URL,
+    siteUrl: env.CONVEX_SITE_URL,
+  }),
   getSessionIssuers: () => [
     'https://api.workos.com/',
     `https://api.workos.com/user_management/${env.WORKOS_CLIENT_ID}`,
@@ -34,21 +36,40 @@ const workos = createWorkOSFunctions({
 });
 
 // Export exactly the builtins your app wants. No account or team folders are needed.
-export const { getAccount, listMembers, listTeams, createTeam } = workos.functions;
+export const { getAccount, listMembers, listTeams, createTeam } = platforms.functions;
 
 // Optional authenticated web/mobile endpoints; aliases avoid duplicate export names.
-export const { getAccount: getAccountPublic, listMembers: listMembersPublic } = workos.publicFunctions;
+export const { getAccount: getAccountPublic, listMembers: listMembersPublic } = platforms.publicFunctions;
+
+export const { internalQuery, internalMutation, internalAction, registerRoutes } = platforms;
+export const identityFields = platforms.validators.identityFields;
 ```
 
-`requireUser` is your application's authentication callback. It must resolve trusted `{ orgId, userId, role }` from `ctx.auth`, reject unauthenticated callers and allow only your intended web/device issuers. It receives an auth context, never client identity arguments. Use the same literal role union in your authentication callback and package configuration. `roles` is ordered from highest priority to lowest; memberships with several supported roles use the first match. `adminRoles` permits account, membership and invitation administration. `defaultRole` is used when an invitation omits its role. The first `adminRoles` entry owns newly created teams.
+Mount the integration once alongside application HTTP routes:
+
+```ts
+// convex/http.ts
+import { httpRouter } from 'convex/server';
+import type { Manifest } from '@disposabl/convex-platforms';
+import manifest from '../platforms/generated/manifest.json';
+import { registerRoutes } from './platforms';
+
+const http = httpRouter();
+registerRoutes(http, manifest as Manifest);
+export default http;
+```
+
+Run generation before deploying. The generator skips `http.ts`; `platforms.ts` imports no generated manifest and reads no environment values until its callbacks execute. The first generation can discover the integration with no generated files. Custom todo functions import the native builders and `identityFields` from this same module.
+
+`requireUser` is your application's authentication callback. Omitting `resolveIdentity` makes every package public wrapper reject with `unauthenticated` before calling WorkOS. Configure a trusted resolver before exporting public aliases. It must resolve trusted `{ orgId, userId, role }` from `ctx.auth`, reject unauthenticated callers and allow only your intended web/device issuers. It receives an auth context, never client identity arguments. Use the same literal role union in your authentication callback and package configuration. `roles` is ordered from highest priority to lowest; memberships with several supported roles use the first match. `adminRoles` permits account, membership and invitation administration. `defaultRole` is used when an invitation omits its role. The first `adminRoles` entry owns newly created teams.
 
 Declare credential environment variables in your app's Convex configuration or use its managed WorkOS integration so the generated `env` has their types. Store and validate required credentials on each deployment before deploying. Lazy configuration callbacks let local generation discover functions without reading credentials, authenticating or calling WorkOS. Configure `platforms` with the same selection flags as other internal functions. It defaults to all interfaces. Public web functions are independent of those flags.
 
 ## Select or replace functions
 
-Convex discovers exported native functions from `convex/workos.ts`. Unexported package functions are absent from Convex's callable API and from generated interfaces. Internal exports use `internal.workos.getAccount`; optional public aliases use `api.workos.getAccountPublic`. Public wrappers authenticate first, omit identity arguments and share the package operation logic. They have no platform metadata, so generation never includes a public duplicate.
+Convex discovers exported native functions from `convex/platforms.ts`. Unexported package functions are absent from Convex's callable API and from generated interfaces. Internal exports use `internal.platforms.getAccount`; optional public aliases use `api.platforms.getAccountPublic`. Public wrappers authenticate first, omit identity arguments and share the package operation logic. They have no platform metadata, so generation never includes a public duplicate.
 
-`workos.functions` is a flat object containing all 14 native internal operations. `workos.publicFunctions` contains their native authenticated public wrappers with the same keys. The existing grouped `workos.account`, `workos.members`, `workos.invitations`, `workos.apiKeys`, `workos.teams` and `workos.public` exports remain supported.
+`platforms.functions` is a flat object containing all 14 native internal operations. `platforms.publicFunctions` contains their native authenticated public wrappers with the same keys. The existing grouped `workos.account`, `workos.members`, `workos.invitations`, `workos.apiKeys`, `workos.teams` and `workos.public` exports remain supported.
 
 | Logical resource      | Operations                                                                  |
 | --------------------- | --------------------------------------------------------------------------- |
@@ -58,17 +79,14 @@ Convex discovers exported native functions from `convex/workos.ts`. Unexported p
 | `account/apiKeys`     | `listApiKeys`, `createApiKey`, `revokeApiKey`                               |
 | `teams`               | `listTeams`, `createTeam`                                                   |
 
-Each builtin carries its logical `resource` metadata. Exporting `listMembers` from `convex/workos.ts` produces `/api/v1/account/members/list`, `account_members_list`, `account members list` and `client.account.members.list`; its actual Convex reference stays `workos:listMembers`. Keep the operation names when destructuring internal functions.
+Each builtin carries its logical `resource` metadata. Exporting `listMembers` from `convex/platforms.ts` produces `/api/v1/account/members/list`, `account_members_list`, `account members list` and `client.account.members.list`; its actual Convex reference stays `platforms:listMembers`. Keep the operation names when destructuring internal functions.
 
 To replace a builtin, omit it from the package destructuring and export your own native internal function with the same operation name and logical resource. Your own function owns its authorization and business logic:
 
 ```ts
-// Additional imports in the same convex/workos.ts file:
-import { createPlatformFunctions, identityFields } from '@disposabl/convex-platforms/functions';
-import type { DataModel } from './_generated/dataModel';
-
+// In the same convex/platforms.ts file:
 // Do not include getAccount in the builtin destructuring above.
-const { internalQuery } = createPlatformFunctions<DataModel>();
+// internalQuery and identityFields are already exported above.
 export const getAccount = internalQuery({
   resource: ['account'],
   platforms: { api: true, mcp: true },
@@ -90,7 +108,7 @@ operationPlatforms: {
 },
 ```
 
-An omitted override inherits the global selection. `false` disables generated interfaces while retaining a native function if you export it. Export selection controls registration; interface selection controls generated exposure. Public web wrappers remain independent. `workos.validators` exposes shared boundary schemas, or use `createWorkOSValidators(role)` independently.
+An omitted override inherits the global selection. `false` disables generated interfaces while retaining a native function if you export it. Export selection controls registration; interface selection controls generated exposure. Public web wrappers remain independent. `platforms.validators` exposes shared boundary schemas, or use `createWorkOSValidators(role)` independently.
 
 `getAccount` remains a native query returning the trusted identity. Operations requiring WorkOS are native actions. Team creation requires a UUID `requestId`; retry the same request with the same ID to reuse its organization. A scoped conflict lookup recovers concurrent owner-membership creation without deleting organizations or changing existing memberships.
 
@@ -109,25 +127,21 @@ Collection operations accept native Convex `paginationOpts` and return `{ page, 
 If your app synchronizes WorkOS users, the package can provision personal organizations before committing each user event:
 
 ```ts
-import { createWorkOSWebhook } from '@disposabl/convex-platforms/workos';
-
-http.route({
-  path: '/api/workos/webhook',
-  method: 'POST',
-  handler: createWorkOSWebhook({
-    getClient: () => getAuthKit().workos,
-    getWebhookSecret: () => env.WORKOS_WEBHOOK_SECRET,
-    personal: { name: 'Personal', externalIdPrefix: 'personal:', ownerRole: 'admin' },
-    isUserSynced: async (ctx, userId) =>
-      !!(await ctx.runQuery(components.workOSAuthKit.lib.getAuthUser, { id: userId })),
-    syncEvent: async (ctx, event) => {
-      await ctx.runMutation(components.workOSAuthKit.lib.onWebhookEvent, {
-        event: { id: event.id, event: event.event, data: event.data, createdAt: event.createdAt },
-      });
-    },
-  }),
-});
+// Add this optional property inside the same createPlatforms configuration.
+webhook: {
+  getWebhookSecret: () => env.WORKOS_WEBHOOK_SECRET,
+  personal: { name: 'Personal', externalIdPrefix: 'personal:', ownerRole: 'admin' },
+  isUserSynced: async (ctx, userId) =>
+    !!(await ctx.runQuery(components.workOSAuthKit.lib.getAuthUser, { id: userId })),
+  syncEvent: async (ctx, event) => {
+    await ctx.runMutation(components.workOSAuthKit.lib.onWebhookEvent, {
+      event: { id: event.id, event: event.event, data: event.data, createdAt: event.createdAt },
+    });
+  },
+},
 ```
+
+`registerRoutes` mounts this webhook at `/api/workos/webhook` and shares the integration's WorkOS client. Set `webhook.path` to change its URL. A custom personal prefix is shared by builtin operations and webhook provisioning; conflicting explicit prefixes are rejected. Omit `webhook` to register no webhook. The low-level `createWorkOSFunctions` and `createWorkOSWebhook` factories remain available under `./workos` for existing integrations.
 
 The SDK verifies the signature against the raw body before any provisioning or synchronization callback. User creation/update events provision only when `isUserSynced` returns false. A stale event for a deleted WorkOS user is acknowledged without synchronizing that deleted user. Provisioning errors remain unacknowledged so WorkOS can retry; synchronization runs after provisioning succeeds.
 
