@@ -14,9 +14,9 @@ class _NoRedirect(HTTPRedirectHandler):
 
 def _request(site_url: str, token: str, path: str, args: object):
     base = urlsplit(site_url)
-    if base.scheme not in ("http", "https") or not base.netloc or base.username or base.password or base.query or base.fragment:
-        raise ValueError("Expected an HTTP site URL without credentials, query, or fragment")
-    if not token: raise ValueError("A bearer token is required")
+    if not base.netloc or base.username or base.password or base.query or base.fragment or base.path not in ("", "/") or (base.scheme != "https" and not (base.scheme == "http" and base.hostname in ("localhost", "127.0.0.1", "::1"))):
+        raise ValueError("Expected an HTTPS site origin; HTTP is allowed only on localhost")
+    if not token or "\r" in token or "\n" in token: raise ValueError("A bearer token is required")
     request = Request(urlunsplit((base.scheme, base.netloc, path, "", "")), data=json.dumps(args).encode(), headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"}, method="POST")
     try:
         with build_opener(_NoRedirect()).open(request, timeout=30) as response:

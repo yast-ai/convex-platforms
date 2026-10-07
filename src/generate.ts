@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Convex validator internals are intentionally opaque at this boundary. */
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { v } from 'convex/values';
@@ -14,6 +14,7 @@ import { bundleUi } from './ui-build.js';
 const platformNames: Platform[] = ['api', 'mcp', 'cli', 'sdk-typescript', 'sdk-python'];
 const identity = ['orgId', 'userId', 'role'];
 const reserved = new Set(['constructor', 'prototype', '__proto__']);
+let discoveryVersion = 0;
 const snake = (value: string) => value.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
 const label = (value: string) =>
   value.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (x) => x.toUpperCase());
@@ -156,7 +157,15 @@ function openapi(operations: Operation[], name: string): Record<string, unknown>
     ),
   };
 }
-async function atomically(root: string, outputs: Record<string, string>, check: boolean) {
+const generatedNames = new Set([
+  'manifest.json',
+  'openapi.json',
+  'sdk-typescript.ts',
+  'sdk-typescript.package.json',
+  'sdk-python.py',
+  'sdk-python.package.json',
+]);
+async function atomically(root: string, outputDir: string, outputs: Record<string, string>, check: boolean) {
   for (const [file, content] of Object.entries(outputs)) {
     const destination = resolve(root, file);
     const current = await readFile(destination, 'utf8').catch(() => undefined);
@@ -170,6 +179,19 @@ async function atomically(root: string, outputs: Record<string, string>, check: 
     } finally {
       await rm(temporary, { force: true });
     }
+  }
+  for (const name of generatedNames) {
+    const file = join(outputDir, name);
+    if (file in outputs) continue;
+    const destination = resolve(root, file);
+    const info = await lstat(destination).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') return undefined;
+      throw error;
+    });
+    if (!info) continue;
+    if (!info.isFile() || info.isSymbolicLink()) throw new Error(`${file} must be a regular generated file`);
+    if (check) throw new Error(`${file} is stale. Run convex-platforms generate.`);
+    await rm(destination);
   }
 }
 
@@ -193,7 +215,7 @@ export async function generatePlatforms(options: GeneratePlatformsOptions = {}):
       /(^|\/)components?\//.test(rel)
     )
       continue;
-    const module = await import(`${pathToFileURL(path).href}?convex-platforms=${Date.now()}`);
+    const module = await import(`${pathToFileURL(path).href}?convex-platforms=${++discoveryVersion}`);
     for (const [name, fn] of Object.entries(module)) {
       const definition: any = fn as any;
       if (!definition || typeof definition !== 'object' || definition.platforms === undefined) continue;
@@ -257,30 +279,18 @@ export async function generatePlatforms(options: GeneratePlatformsOptions = {}):
     [output('manifest.json')]: JSON.stringify(manifest, null, 2) + '\n',
     [output('openapi.json')]: JSON.stringify(spec, null, 2) + '\n',
   };
-  Object.assign(
-    outputs,
-    Object.fromEntries(
-      Object.entries(
-        await generateClients(
-          operations.filter((operation) => operation.platforms.includes('sdk-typescript')),
-          'sdk-typescript',
-          appName.toLowerCase().replace(/\s+/g, '-'),
-        ),
-      ).map(([file, content]) => [output(file), content]),
-    ),
-  );
-  Object.assign(
-    outputs,
-    Object.fromEntries(
-      Object.entries(
-        await generateClients(
-          operations.filter((operation) => operation.platforms.includes('sdk-python')),
-          'sdk-python',
-          appName.toLowerCase().replace(/\s+/g, '-'),
-        ),
-      ).map(([file, content]) => [output(file), content]),
-    ),
-  );
-  await atomically(root, outputs, options.check ?? false);
+  for (const platform of ['sdk-typescript', 'sdk-python'] as const) {
+    const selectedOperations = operations.filter((operation) => operation.platforms.includes(platform));
+    if (!selectedOperations.length) continue;
+    Object.assign(
+      outputs,
+      Object.fromEntries(
+        Object.entries(
+          await generateClients(selectedOperations, platform, appName.toLowerCase().replace(/\s+/g, '-')),
+        ).map(([file, content]) => [output(file), content]),
+      ),
+    );
+  }
+  await atomically(root, outputDir, outputs, options.check ?? false);
   return manifest;
 }

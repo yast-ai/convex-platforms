@@ -12,15 +12,17 @@ export class ApiError extends Error {
 export async function request<T>(siteUrl: string, token: string, path: string, args: object): Promise<T> {
   const base = new URL(siteUrl);
   if (
-    !['http:', 'https:'].includes(base.protocol) ||
     base.username ||
     base.password ||
     base.search ||
-    base.hash
+    base.hash ||
+    base.pathname !== '/' ||
+    (base.protocol !== 'https:' &&
+      !(base.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname)))
   )
-    throw new Error('Expected an HTTP site URL without credentials, query, or fragment');
-  if (!token) throw new Error('A bearer token is required');
-  const response = await fetch(new URL(path, base), {
+    throw new Error('Expected an HTTPS site origin; HTTP is allowed only on localhost');
+  if (!token || /[\r\n]/.test(token)) throw new Error('A bearer token is required');
+  const response = await fetch(new URL(path, base.origin), {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(args),

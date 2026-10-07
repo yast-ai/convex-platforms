@@ -4,8 +4,16 @@ import { resolve } from 'node:path';
 import type { Widget } from './contract.js';
 
 type UiConfig = { csp?: Widget['csp'] };
+const cspKeys = new Set<keyof NonNullable<Widget['csp']>>([
+  'connectDomains',
+  'resourceDomains',
+  'frameDomains',
+  'baseUriDomains',
+]);
 function origins(values: string[] | undefined, name: string): string[] | undefined {
   if (!values) return undefined;
+  if (!Array.isArray(values) || values.some((value) => typeof value !== 'string'))
+    throw new Error(`${name}: CSP domains must be string arrays`);
   for (const value of values)
     if (!value.startsWith('https://') || new URL(value).origin !== value)
       throw new Error(`${name}: CSP domains must be HTTPS origins`);
@@ -25,6 +33,8 @@ export async function bundleUi(root: string, uiDir: string, name: string): Promi
     });
   const csp: Widget['csp'] = {};
   for (const [key, values] of Object.entries(config.csp ?? {})) {
+    if (!cspKeys.has(key as keyof NonNullable<Widget['csp']>))
+      throw new Error(`${name}: unsupported CSP key ${key}`);
     const normalized = origins(values as string[] | undefined, name);
     if (normalized?.length) (csp as Record<string, string[]>)[key] = normalized;
   }
