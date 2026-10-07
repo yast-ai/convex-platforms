@@ -4,9 +4,9 @@
 
 ## Before the first release
 
-1. Use the `disposabl` organization on npm and ensure the release maintainer has verified email and two-factor authentication.
+1. Create the `disposabl` organization on npm and ensure the release maintainer has verified email and two-factor authentication.
 2. Publish the reviewed initial version manually with `npm publish --access public`.
-3. On that package's npm Settings page, configure a GitHub Actions trusted publisher with organization `yast-ai`, repository `convex-platforms`, and workflow filename `publish.yml`.
+3. On that package's npm Settings page, configure a GitHub Actions trusted publisher with GitHub organization `yast-ai`, repository `convex-platforms`, and workflow filename `publish.yml`.
 4. Complete the first trusted publish within two days, then set publishing access to require two-factor authentication and disallow tokens.
 
 Trusted publishing uses GitHub-hosted Actions OIDC. It requires Node 22.14+ and npm 11.5.1+; the workflow uses Node 24 and verifies the npm version before publication. No npm write token or GitHub secret is used.

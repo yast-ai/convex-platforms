@@ -1,4 +1,5 @@
-import { mkdir, chmod, cp } from 'node:fs/promises';
+import { mkdir, chmod, cp, rm } from 'node:fs/promises';
+await rm('dist', { recursive: true, force: true });
 const result = Bun.spawnSync(['bunx', 'tsc', '--emitDeclarationOnly'], {
   stdout: 'inherit',
   stderr: 'inherit',

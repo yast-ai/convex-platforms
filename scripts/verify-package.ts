@@ -3,13 +3,14 @@ import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 
 type PackedPackage = { filename: string };
+type ExportTarget = string | { [condition: string]: ExportTarget };
 
 const packageRoot = process.cwd();
 const temporaryDirectory = await mkdtemp(join(tmpdir(), 'convex-platforms-package-'));
 const npmCacheDirectory = join(temporaryDirectory, 'npm-cache');
 const packageJson = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8')) as {
   bin?: Record<string, string>;
-  exports?: Record<string, unknown>;
+  exports?: ExportTarget;
   name: string;
 };
 
@@ -37,6 +38,23 @@ function isAllowedPackageFile(path: string): boolean {
   );
 }
 
+function exportTargets(value: unknown, entrypoint: string): string[] {
+  if (typeof value === 'string') return [value];
+  assert(
+    value && typeof value === 'object' && !Array.isArray(value),
+    `Export ${entrypoint} must be a string or condition map.`,
+  );
+  const targets = Object.entries(value as Record<string, unknown>).flatMap(([condition, target]) =>
+    exportTargets(target, `${entrypoint} (${condition})`),
+  );
+  assert(targets.length > 0, `Export ${entrypoint} must contain at least one target.`);
+  return targets;
+}
+
+function packageSpecifier(name: string, entrypoint: string): string {
+  return entrypoint === '.' ? name : `${name}/${entrypoint.replace(/^\.\//, '')}`;
+}
+
 try {
   await mkdir(npmCacheDirectory, { recursive: true });
   const packed = JSON.parse(
@@ -54,11 +72,16 @@ try {
     'Package includes a private environment, Git, or dependency path.',
   );
 
-  for (const [entrypoint, value] of Object.entries(packageJson.exports ?? {})) {
-    const exportValue = value as { import?: string; types?: string };
-    for (const target of [exportValue.import, exportValue.types].filter((item): item is string =>
-      Boolean(item),
-    )) {
+  const packageExports =
+    typeof packageJson.exports === 'string' ? { '.': packageJson.exports } : packageJson.exports;
+  assert(
+    packageExports && typeof packageExports === 'object' && !Array.isArray(packageExports),
+    'Package exports must be a string or export map.',
+  );
+  assert(Object.keys(packageExports).length > 0, 'Package must declare at least one export.');
+  for (const [entrypoint, value] of Object.entries(packageExports)) {
+    for (const target of exportTargets(value as ExportTarget, entrypoint)) {
+      assert(target.startsWith('./'), `Export ${entrypoint} must use a package-relative target.`);
       assert(
         listedFiles.includes(`package/${target.replace(/^\.\//, '')}`),
         `Export ${entrypoint} points to a missing packed artifact: ${target}`,
@@ -114,18 +137,73 @@ try {
   );
   run(
     'node',
-    ['--input-type=module', '--eval', `await import(${JSON.stringify(packageJson.name)});`],
+    [
+      '--input-type=module',
+      '--eval',
+      `await Promise.all(${JSON.stringify(Object.keys(packageExports).map((entrypoint) => packageSpecifier(packageJson.name, entrypoint)))}.map((entrypoint) => import(entrypoint)));`,
+    ],
     consumer,
   );
   await Bun.write(
     join(consumer, 'index.ts'),
-    `import type { Manifest } from ${JSON.stringify(packageJson.name)};\nconst manifest: Manifest | undefined = undefined;\nvoid manifest;\n`,
+    `import { v } from 'convex/values';
+import type { GenericDataModel } from 'convex/server';
+import { createPlatformFunctions, identityFields } from ${JSON.stringify(packageSpecifier(packageJson.name, './functions'))};
+import type { Manifest } from ${JSON.stringify(packageJson.name)};
+const builders = createPlatformFunctions<GenericDataModel>();
+builders.internalMutation({ args: { ...identityFields, text: v.string() }, returns: v.string(), handler: async (_ctx, args) => args.text });
+const manifest: Manifest | undefined = undefined;
+void manifest;
+`,
   );
   run(
     join(consumer, 'node_modules/.bin/tsc'),
     ['--noEmit', '--module', 'NodeNext', '--moduleResolution', 'NodeNext', '--target', 'ES2022', 'index.ts'],
     consumer,
   );
+
+  await mkdir(join(consumer, 'convex/todos'), { recursive: true });
+  await Bun.write(
+    join(consumer, 'convex/todos/internal.ts'),
+    `import { v } from 'convex/values';
+const metadata = Symbol.for('yast.convex-platforms.validators');
+export const listTodos = Object.assign(
+  { isInternal: true, isQuery: true, platforms: { api: true, 'sdk-typescript': true, 'sdk-python': true }, description: 'List todos' },
+  { [metadata]: { args: { orgId: v.string(), userId: v.string(), role: v.string() }, returns: v.array(v.string()) } },
+);
+`,
+  );
+  run(
+    'bun',
+    [
+      '--eval',
+      `import { generatePlatforms } from ${JSON.stringify(packageSpecifier(packageJson.name, './generate'))};
+await generatePlatforms({ root: process.cwd(), outputDir: 'generated' });`,
+    ],
+    consumer,
+  );
+  const generatedTypeScript = join(consumer, 'generated/sdk-typescript.ts');
+  const generatedPython = join(consumer, 'generated/sdk-python.py');
+  assert(
+    await Bun.file(generatedTypeScript).exists(),
+    'Packed generator did not write the TypeScript SDK template.',
+  );
+  assert(await Bun.file(generatedPython).exists(), 'Packed generator did not write the Python SDK template.');
+  run(
+    join(consumer, 'node_modules/.bin/tsc'),
+    [
+      '--noEmit',
+      '--module',
+      'NodeNext',
+      '--moduleResolution',
+      'NodeNext',
+      '--target',
+      'ES2022',
+      generatedTypeScript,
+    ],
+    consumer,
+  );
+  run('python3', ['-m', 'py_compile', generatedPython], consumer);
 
   const pythonFiles = listedFiles
     .filter((file) => file.endsWith('.py'))
