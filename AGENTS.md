@@ -1,4 +1,4 @@
-# Portloom
+# Function Ports
 
 Public npm library by Yast AI. Use Bun; install with `bun install --frozen-lockfile` after the lockfile exists.
 Keep runtime imports independent from generation/Node/build tooling. Functions remain native internal Convex functions in the consuming app.

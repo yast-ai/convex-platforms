@@ -1,13 +1,13 @@
 {
-  "name": "@yast-ai/portloom",
+  "name": "@yast-ai/function-ports",
   "version": "0.1.0",
   "description": "Expose Convex internal functions through WorkOS-authenticated HTTP APIs, MCP tools, CLIs and SDKs.",
   "type": "module",
   "license": "MIT",
   "author": "Yast AI",
-  "repository": { "type": "git", "url": "git+https://github.com/yast-ai/portloom.git" },
-  "homepage": "https://github.com/yast-ai/portloom#readme",
-  "bugs": { "url": "https://github.com/yast-ai/portloom/issues" },
+  "repository": { "type": "git", "url": "git+https://github.com/yast-ai/function-ports.git" },
+  "homepage": "https://github.com/yast-ai/function-ports#readme",
+  "bugs": { "url": "https://github.com/yast-ai/function-ports/issues" },
   "keywords": ["convex", "workos", "mcp", "mcp-apps", "openapi", "cli", "sdk"],
   "engines": { "node": ">=22.14.0", "bun": ">=1.3.0" },
   "files": ["dist", "templates", "README.md", "LICENSE", "NOTICE", "docs"],
@@ -19,7 +19,7 @@
     "./react": { "types": "./dist/react.d.ts", "import": "./dist/react.js" },
     "./generate": "./dist/generate.js"
   },
-  "bin": { "portloom": "./dist/cli.js" },
+  "bin": { "function-ports": "./dist/cli.js" },
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check .",
