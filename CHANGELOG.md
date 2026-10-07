@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4
+
+- Resolve TypeScript path aliases when bundling MCP widgets, allowing shared application components to retain their existing imports.
+- Verify alias resolution together with compiled Tailwind styles and isolated build configuration. Bundle TinyAPK's actual shared-component widget as a consumer compatibility check.
+
 ## 0.1.3
 
 - Bundle existing Tailwind v4 MCP widgets using the optional `@tailwindcss/vite` plugin.

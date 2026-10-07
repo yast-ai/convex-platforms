@@ -1,6 +1,6 @@
 {
   "name": "@disposabl/convex-platforms",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Expose Convex internal functions through WorkOS-authenticated HTTP APIs, MCP tools, CLIs and SDKs.",
   "type": "module",
   "license": "MIT",

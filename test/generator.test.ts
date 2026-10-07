@@ -37,7 +37,17 @@ describe('generatePlatforms', () => {
     await mkdir(join(root, 'platforms/ui'), { recursive: true });
     await Bun.write(
       join(root, 'platforms/ui/todos.html'),
-      '<!doctype html><html><head><link rel="stylesheet" href="./todos.css"></head><body><main class="bg-blue-600 p-4">Todos</main></body></html>',
+      '<!doctype html><html><head><link rel="stylesheet" href="./todos.css"></head><body><main class="bg-blue-600 p-4">Todos</main><script type="module" src="./todos.ts"></script></body></html>',
+    );
+    await mkdir(join(root, 'src'), { recursive: true });
+    await Bun.write(join(root, 'src/shared.ts'), "export const label = 'Shared application component';\n");
+    await Bun.write(
+      join(root, 'platforms/ui/todos.ts'),
+      "import { label } from '@/shared'; document.title = label;\n",
+    );
+    await Bun.write(
+      join(root, 'tsconfig.json'),
+      JSON.stringify({ compilerOptions: { paths: { '@/*': ['./src/*'] } } }),
     );
     await Bun.write(
       join(root, 'platforms/ui/todos.css'),
@@ -54,6 +64,7 @@ describe('generatePlatforms', () => {
     const widget = await bundleUi(root, 'platforms/ui', 'todos');
     expect(widget.text).toContain('.bg-blue-600');
     expect(widget.text).toContain('.p-4');
+    expect(widget.text).toContain('Shared application component');
     expect(widget.text).not.toMatch(/<(?:script|link)[^>]+(?:src|href)=/);
     expect(widget.text).not.toContain('@import "tailwindcss"');
   });

@@ -65,6 +65,7 @@ export async function bundleUi(root: string, uiDir: string, name: string): Promi
     envPrefix: '__CONVEX_PLATFORMS_NEVER_MATCH__',
     publicDir: false,
     logLevel: 'error',
+    resolve: { tsconfigPaths: true },
     css: { postcss: {} },
     plugins: [react.default(), ...(tailwind ? [tailwind.default()] : []), single.viteSingleFile()],
     build: { write: false, sourcemap: false, rollupOptions: { input: html } },

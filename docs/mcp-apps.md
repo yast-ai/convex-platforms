@@ -20,7 +20,7 @@ See the [React todo example](../examples/mcp-app/README.md) for the host bridge,
 
 The example also supports narrow layouts and host themes. [Mobile dark-theme capture](assets/mcp-app-mobile-dark.jpg). These captures verify the browser mock, which is labeled in the UI; actual host interaction is a separate check.
 
-Import presentational components from your web app when useful. Keep Convex web hooks and the MCP host bridge in separate wrappers. The MCP wrapper receives tool results and calls existing tools through the host; it does not embed bearer tokens or connect directly to Convex.
+Import presentational components from your web app when useful. The Vite 8 bundler resolves the application's TypeScript path aliases, including imports such as `@/components/todos`. Keep Convex web hooks and the MCP host bridge in separate wrappers. The MCP wrapper receives tool results and calls existing tools through the host; it does not embed bearer tokens or connect directly to Convex.
 
 The package React entry wraps the official MCP Apps bridge. Apply host theme/style context, show loading/errors, disable unsupported actions and refresh data through tools. Realtime subscriptions are not automatically created by attaching a UI.
 
