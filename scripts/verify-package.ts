@@ -132,6 +132,7 @@ try {
       'react@^19.0.0',
       'react-dom@^19.0.0',
       'typescript@^5.9.0',
+      '@types/node@^24.0.0',
     ],
     consumer,
   );
@@ -225,6 +226,31 @@ if (manifest.operations.length !== 1 || manifest.operations[0]?.name !== 'listTo
     consumer,
   );
   run('python3', ['-m', 'py_compile', generatedPython], consumer);
+
+  run(installedBin, ['init', '--name', 'packed-consumer'], consumer);
+  await mkdir(join(consumer, 'convex/_generated'), { recursive: true });
+  await Bun.write(
+    join(consumer, 'convex/_generated/dataModel.d.ts'),
+    "export type { GenericDataModel as DataModel } from 'convex/server';\n",
+  );
+  run(
+    join(consumer, 'node_modules/.bin/tsc'),
+    [
+      '--noEmit',
+      '--module',
+      'ESNext',
+      '--moduleResolution',
+      'Bundler',
+      '--target',
+      'ES2022',
+      '--resolveJsonModule',
+      'convex/ports.ts',
+      'convex/platforms.ts',
+      'convex/http.ts',
+      'convex/auth.config.ts',
+    ],
+    consumer,
+  );
 
   const pythonFiles = listedFiles
     .filter((file) => file.endsWith('.py'))

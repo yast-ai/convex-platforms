@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2
+
+- Add dashboard onboarding screenshots and a setup tour, including the unconnected integration, workspace dialog and connected integration steps. Label the edited dialog button and separate teams.
+- Require all WorkOS settings before the first package-enabled deployment in the README and generated setup instructions.
+- Type the generated JSON manifest in the initializer and example so new Convex projects pass TypeScript checks.
+- Correct first-party CLI device authorization and host-specific OpenAI/Claude plugin installation instructions. Record real device login, refresh and logout verification.
+- Verify the optional MCP Apps example in CI and before publishing, including its types and self-contained HTML bundle.
+
 ## 0.1.1
 
 - Document the npm CLI command for configuring GitHub trusted publishing, including its direct publishing permission and interactive authentication requirement.

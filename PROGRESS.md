@@ -1,25 +1,22 @@
 # Release progress
 
-Name: Convex Platforms. npm: @disposabl/convex-platforms. Public GitHub: https://github.com/yast-ai/convex-platforms.
-The new isolated repository is /private/tmp/portloom. Do not edit TinyAPK. Fifteen-minute follow-through heartbeat remains active.
+Convex Platforms: `@disposabl/convex-platforms`, https://github.com/yast-ai/convex-platforms. Source checkout: `/private/tmp/portloom`. The fifteen-minute follow-through heartbeat remains active.
 
-## Completed
+## Published and verified
 
-- Native typed internal builders, generated contracts, WorkOS-authenticated API/MCP, CLI private rotating sessions, TypeScript/Python SDKs, MCP Apps bundler, initializer and project-level host plugins.
-- Independent generator/runtime/release reviews, source checks, 39 tests including official MCP client and real TS/Python network transports, packed installation/export/declaration/CLI checks. CI passed at 604194b.
-- Public README, onboarding paths, publishing/testing/security guides, setup diagrams, rendered 90-second walkthrough and editable source.
-- Fresh development-only Convex project yast-ai/convex-platforms-demo, deployment hip-lark-939. Managed WorkOS environment provisioned. CIMD enabled and exact /mcp resource registered. Routes and discovery deployed and doctor passes.
+- npm 0.1.1 was published automatically through GitHub trusted publishing at source `68ea3c0`. Publication run `37598838964` and matching CI `37598838926` passed. Signed provenance is present. No long-lived npm token is used.
+- A fresh registry consumer installed the package, generated three actual native Convex operations, checked freshness and ran the installed CLI.
+- Native typed internal builders, generated contracts, authenticated API/MCP, rotating private CLI sessions, TypeScript/Python SDKs, MCP Apps bundling, initializer and project-level plugin packaging are implemented. Independent reviews and 43 tests passed, including official MCP client and real TypeScript/Python network transports. Packed-consumer export, declaration and command checks passed.
+- Live development demo: `yast-ai/convex-platforms-demo`, deployment `hip-lark-939`. Managed WorkOS, CIMD and its exact `/mcp` resource are configured. API, installed CLI and both SDKs completed create/list/delete. Identity forgery returned 400, cross-organization deletion returned 404, invalid text returned 400, and other-organization reads were empty. Membership revocation returned 401 and reactivation restored 200.
+- Real WorkOS CLI device authorization completed in Chrome. Registry CLI CRUD, rotating refresh, stable organization, refresh-only private storage (0700 directory / 0600 file), logout and post-logout denial passed.
+- Optional React MCP Apps example was bundled and typechecked, then visibly checked in a labeled browser mock at desktop and 390px mobile sizes in light/dark themes. Example CI gate passed in run `37601311105` at `f947f15`.
+- Real onboarding captures include QA's unconnected WorkOS plus button, its Create WorkOS Workspace dialog, and Yast's connected Active integration. The QA dialog's button appearance alone was edited with image generation and is explicitly labeled. The connected capture is from a different team. QA was not connected: its only eligible email is already used, and the user declined adding another email.
 
-## Active repair and remaining proof
+## Work in progress
 
-- Native callable discovery repaired and regression fixtures now use real native builders. 43 tests and packed-consumer verification pass. Real API, installed CLI and both SDKs completed create/list/delete on hip-lark-939; forgery400, cross-orgdelete404, invalidText400, other org reads empty.
-- Root merged safe Convex business errors, API/MCP CORS separation and CSP directive validation from runtime review (62a5390).
-- Private test credentials and fixtures exist ONLY in /private/tmp/convex-platforms-demo/.work and .workos-key. Never commit/copy/display them. Reuse .work/verify-api.ts after a new packed build is installed and regenerated. Test API keys expire after one hour.
-- npm 0.1.1 published automatically through GitHub trusted publishing. Publish run 37598838964 and CI run 37598838926 passed at 68ea3c0. Provenance present. Fresh registry consumer generated three actual native operations; installed CLI works. Live demo uses registry 0.1.1 and API, CLI and both SDK CRUD checks pass. Real WorkOS membership revocation returns 401 and reactivation restores 200.
-- Optional React MCP Apps example bundles and typechecks. Its browser mock was visibly checked on desktop and 390px mobile in light/dark themes. Actual ChatGPT/Claude UI host interaction remains unverified.
-- Chrome extension is available and root owns it. User requested unconnected dispsoabl-qa team onboarding. Root created development project convex-platforms-onboarding, deployment befitting-spoonbill-8, and captured empty-team, unconnected integration and setup dialog. Team membership is Admin. Create WorkOS Workspace is disabled because official Convex email eligibility reports availableEmails empty and vivek@yast.ai already used. User asked for another email; no account association or email added yet. Do not reuse Yast demo credentials for QA. No QA backend deployed yet.
-- CLI device confirmation, real MCP OAuth authorization, ChatGPT/Claude installation and UI interaction, and dashboard setup video remain outstanding. Intro walkthrough is a diagram animation, not a dashboard recording. Newly captured dashboard stills are real; do not claim completed QA integration from them.
-- User confirmed there is no alternate email and requested an AI setup illustration followed by real configured-demo screenshots/video. QA connection is no longer required for documentation footage. Do not add an email, disconnect an existing integration, or fabricate successful QA setup. Root is generating a clearly labeled new-team illustration; release agent owns a screenshot-based setup tour in media/setup-tour-source and media/setup-tour.mp4.
-- Durable checkout /Users/vivekbezawada/Projects/convex-platforms is synced through 68ea3c0. Sync after next push. React example CI verification is assigned to generator agent in its separate worktree. Plugin/device-flow documentation correction merged at a8eb42a.
+- Final screenshot-based setup tour revision uses the three requested captures in order. The original 90-second diagram walkthrough is also available. Neither is described as a continuous dashboard recording.
+- Release 0.1.2 will publish the corrected onboarding preflight, device-flow and host-specific plugin instructions, screenshots and finished tour links. Sync the durable checkout `/Users/vivekbezawada/Projects/convex-platforms` after pushing.
+- At the user's explicit request, the runtime agent now owns migration of TinyAPK's current main-branch uncommitted platform implementation to the published npm package. Preserve unrelated changes and a recoverable private snapshot. Do not commit or push the application's uncommitted work.
+- Real WorkOS Connect MCP OAuth authorization and native ChatGPT/Claude plugin installation with a live tool/UI interaction remain unverified. Protocol tests and browser mocks do not replace these checks.
 
-Notify only meaningful changes or required human authentication. Stay quiet on unchanged authentication waits. Never claim production readiness or completed publication from dry runs or green CI alone.
+Private test credentials are restricted to `/private/tmp/convex-platforms-demo` and must never be committed, copied into docs, or displayed. Root owns Chrome exclusively; agents work in separate scoped checkouts. Notify only meaningful progress, completion, failure or necessary human input. Never claim production readiness from dry runs or green CI alone.

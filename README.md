@@ -18,7 +18,7 @@ Optional MCP Apps attach your React UI to tools. Optional project-level plugins 
 
 [![Watch the 90-second walkthrough](https://raw.githubusercontent.com/yast-ai/convex-platforms/main/docs/assets/overview.png)](https://github.com/yast-ai/convex-platforms/blob/main/media/walkthrough.mp4)
 
-[Walkthrough and editable source](media/README.md). Provider setup is shown as labeled diagrams.
+[Watch the dashboard setup tour](https://github.com/yast-ai/convex-platforms/blob/main/media/setup-tour.mp4), or browse its [screenshots and steps](docs/onboarding.md). The tour uses real QA and Yast dashboard captures; the QA dialog's button appearance is labeled as an illustration. [Videos and editable source](media/README.md).
 
 ## Quick start
 
