@@ -16,6 +16,10 @@ Convex internal functions + validators + platforms metadata
 
 Optional MCP Apps attach your React UI to tools. Optional project-level plugins bundle skills and MCP configuration for OpenAI and Claude. Plugins are separate from function-level interface selection.
 
+[![Watch the 90-second walkthrough](https://raw.githubusercontent.com/yast-ai/convex-platforms/main/docs/assets/overview.png)](https://github.com/yast-ai/convex-platforms/blob/main/media/walkthrough.mp4)
+
+[Walkthrough and editable source](media/README.md). Provider setup is shown as labeled diagrams.
+
 ## Quick start
 
 Requires an existing Convex project, Bun 1.3+, Node 22.14+, and a WorkOS AuthKit environment. New to either service? Start with the [three onboarding paths](docs/onboarding.md).

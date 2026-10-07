@@ -63,3 +63,9 @@ Real web sign-in
 ```
 
 Provider dashboard footage must show the actual configuration state. The repository's diagrams and offline tests are not evidence of a completed account setup.
+
+## Setup flow
+
+![Three onboarding paths and MCP configuration](assets/workos-setup.png)
+
+This diagram summarizes setup. Follow the steps above for your deployment environment.

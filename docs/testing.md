@@ -25,3 +25,5 @@ Use Convex's `convex-test` in consuming apps to test tenant isolation and owners
 Generate the same reviewed contract, use a production WorkOS environment and its exact resource audience, run all checks and publish the npm version from trusted GitHub Actions. Fresh-install that exact version from the registry and rerun the example. Keep test records separate from customer data.
 
 Record the source commit, package version/integrity, deployment, commands, observed results, host versions and remaining limitations in release evidence.
+
+The network transport regression runs in CI with Python 3.12. To run it locally, use Python 3.11+ and `PLATFORMS_NETWORK_TESTS=1 PYTHON=python3 bun test`. A filesystem/network sandbox may require approved local network access; the test is visibly skipped in ordinary sandboxed runs.

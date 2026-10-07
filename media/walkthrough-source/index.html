@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #f4f0e8;
+      }
+      #root,
+      .clip {
+        position: absolute;
+        inset: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="90"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div
+        id="scene-01-overview"
+        class="clip"
+        data-composition-id="01-overview"
+        data-composition-src="compositions/01-overview.html"
+        data-start="0"
+        data-duration="10"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="scene-02-install"
+        class="clip"
+        data-composition-id="02-install"
+        data-composition-src="compositions/02-install.html"
+        data-start="10"
+        data-duration="16"
+        data-track-index="2"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="scene-03-function"
+        class="clip"
+        data-composition-id="03-function"
+        data-composition-src="compositions/03-function.html"
+        data-start="26"
+        data-duration="18"
+        data-track-index="3"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="scene-04-auth"
+        class="clip"
+        data-composition-id="04-auth"
+        data-composition-src="compositions/04-auth.html"
+        data-start="44"
+        data-duration="18"
+        data-track-index="4"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="scene-05-interfaces"
+        class="clip"
+        data-composition-id="05-interfaces"
+        data-composition-src="compositions/05-interfaces.html"
+        data-start="62"
+        data-duration="14"
+        data-track-index="5"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="scene-06-extend"
+        class="clip"
+        data-composition-id="06-extend"
+        data-composition-src="compositions/06-extend.html"
+        data-start="76"
+        data-duration="14"
+        data-track-index="6"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.to({}, { duration: 90 });
+      window.__timelines.main = tl;
+    </script>
+  </body>
+</html>

@@ -2,3 +2,4 @@ node_modules
 dist
 bun.lock
 *.svg
+media/walkthrough-source/assets
