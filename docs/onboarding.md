@@ -17,9 +17,9 @@ For an unconnected team, open the development deployment's **Settings → Integr
 
 Workspace creation requires a team admin and an eligible verified email on the Convex profile. An email already used by another Convex-managed WorkOS integration cannot create a second workspace. If creation is disabled, verify another email in **Profile Settings → Emails**. Do not disconnect a working integration to reuse its email. Review the WorkOS terms during account creation. See [Convex's automatic AuthKit configuration](https://docs.convex.dev/auth/authkit/auto-provision).
 
-![An unconnected development deployment's WorkOS setup dialog](assets/convex-qa-workos-workspace.jpg)
+![Illustrative new-team WorkOS setup dialog](assets/new-team-setup-illustration.png)
 
-This screenshot was captured from a new development project. The disabled button shows an unmet workspace-creation prerequisite; it is not evidence of a connected integration.
+This AI-generated illustration explains workspace creation. Its surrounding dashboard layout is illustrative; use the current Convex dashboard's actual controls. It does not show a completed account connection.
 
 ## 2. Existing Convex with managed WorkOS
 
