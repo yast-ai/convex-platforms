@@ -31,4 +31,15 @@ jobs:
       - run: bun run typecheck
       - run: bun test
       - run: bun run build
+      - name: Install MCP Apps example from its frozen lockfile
+        working-directory: examples/mcp-app
+        run: bun install --frozen-lockfile
+      - name: Typecheck and bundle the MCP Apps example
+        working-directory: examples/mcp-app
+        run: |
+          bun run typecheck
+          bun run bundle
+          test "$(find dist -type f | wc -l | tr -d ' ')" = 1
+          test -f dist/todos.html
+          ! grep -Eq '<(script|link)[^>]+(src|href)=' dist/todos.html
       - run: bun scripts/verify-package.ts

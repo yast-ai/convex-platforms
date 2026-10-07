@@ -71,6 +71,7 @@ jobs:
           bun run typecheck
           bun test
           bun run build
+          (cd examples/mcp-app && bun install --frozen-lockfile && bun run typecheck && bun run bundle && test "$(find dist -type f | wc -l | tr -d ' ')" = 1 && test -f dist/todos.html && ! grep -Eq '<(script|link)[^>]+(src|href)=' dist/todos.html)
           bun scripts/verify-package.ts
       - name: Check npm CLI requirement
         if: steps.version.outputs.changed == 'true'
