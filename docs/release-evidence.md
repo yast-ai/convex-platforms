@@ -20,4 +20,8 @@ Real CLI device confirmation/refresh, WorkOS Connect OAuth authorization, instal
 
 Actual provider dashboard footage has not been recorded. No diagram is presented as a dashboard recording.
 
-Publication, OIDC automation and installation from the public registry must be recorded separately after successful npm responses and GitHub Actions runs. No publish dry run counts as publication.
+## Registry publication
+
+The initial `@disposabl/convex-platforms@0.1.0` publication succeeded from the authenticated maintainer CLI. Its public version endpoint and tarball both returned HTTP 200. npm recorded the package as public.
+
+npm confirmed the trusted publisher for repository `yast-ai/convex-platforms`, workflow `publish.yml`, with direct publish permission. Version `0.1.1` is a documentation patch used to verify actual automatic publication after a version change on `main`. Its successful Actions run and fresh registry installation must be recorded after completion. No skipped publish job or dry run counts as automated publication.

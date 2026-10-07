@@ -12,11 +12,11 @@ The new isolated repository is /private/tmp/portloom. Do not edit TinyAPK. Fifte
 
 ## Active repair and remaining proof
 
-- Real installed-package deployment revealed native functions are callable, while discovery filtered object-only. Generator agent owns repair and native-builder regression tests. Release agent owns replacing synthetic packed fixtures. Do not publish until actual operation generation and authenticated deployment checks pass.
+- Native callable discovery repaired and regression fixtures now use real native builders. 43 tests and packed-consumer verification pass. Real API, installed CLI and both SDKs completed create/list/delete on hip-lark-939; forgery400, cross-orgdelete404, invalidText400, other org reads empty.
 - Root merged safe Convex business errors, API/MCP CORS separation and CSP directive validation from runtime review (62a5390).
 - Private test credentials and fixtures exist ONLY in /private/tmp/convex-platforms-demo/.work and .workos-key. Never commit/copy/display them. Reuse .work/verify-api.ts after a new packed build is installed and regenerated. Test API keys expire after one hour.
-- npm login awaiting human approval; expired tokens cannot publish. First npm package does not yet exist. No automated publication has occurred. Configure npm trusted publisher for GitHub yast-ai/convex-platforms workflow publish.yml, allow npm publish, after bootstrap release.
+- npm authentication and disposabl owner access confirmed. Initial @disposabl/convex-platforms@0.1.0 published; public version and tarball endpoints return HTTP 200. npm confirmed GitHub trusted publisher yast-ai/convex-platforms, publish.yml, publish permission. Documentation patch 0.1.1 will prove actual automated publication; do not count skipped version jobs.
 - CLI device confirmation, real MCP OAuth authorization, ChatGPT/Claude installation and UI interaction, and actual dashboard video remain unverified. Chrome extension tools/skill unavailable; do not substitute generic computer use for Chrome or label diagrams as dashboard recordings.
-- Need latest combined checks/CI, live authenticated API/CLI/SDK proof, registry release and fresh registry installation, release evidence and durable checkout.
+- Combined source CI green at af7f488 (37598362278). Durable checkout created at /Users/vivekbezawada/Projects/convex-platforms; keep synced after final push. Need actual 0.1.1 OIDC publish, fresh registry consumer and final evidence. Optional React MCP Apps example is being added in runtime agent worktree.
 
 Notify only meaningful changes or required human authentication. Stay quiet on unchanged authentication waits. Never claim production readiness or completed publication from dry runs or green CI alone.
