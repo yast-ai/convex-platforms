@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile, lstat, readdir, cp } from 'node:fs/promises';
 import { resolve, join, dirname } from 'node:path';
 import { siteOrigin } from './transport.js';
+import { projectPath } from './paths.js';
 import type { Manifest } from './contract.js';
 export async function generatePlugins({
   root = '.',
@@ -22,7 +23,7 @@ export async function generatePlugins({
   if (!origin.startsWith('https:')) throw new Error('Plugin bundles require a public HTTPS deployment');
   const directory = resolve(root);
   const manifest = JSON.parse(
-    await readFile(join(directory, 'platforms/generated/manifest.json'), 'utf8'),
+    await readFile(await projectPath(directory, 'platforms/generated/manifest.json'), 'utf8'),
   ) as Manifest;
   if (manifest.version !== 1 || !manifest.operations.some((op) => op.platforms.includes('mcp')))
     throw new Error('Generate at least one MCP-enabled operation before packaging plugins');
@@ -42,26 +43,39 @@ export async function generatePlugins({
     'claude/.claude-plugin/plugin.json': { name, version: '0.1.0', description },
     'claude/.mcp.json': { mcpServers: { [name]: { type: 'http', url: mcpUrl } } },
   };
-  // Never silently replace a curated plugin manifest or skill.
-  for (const path of Object.keys(files))
+  // Validate destinations and curated inputs before creating any artifacts.
+  const custom = await projectPath(directory, skillsDir);
+  const customInfo = await lstat(custom).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== 'ENOENT') throw error;
+    return null;
+  });
+  if (customInfo && !customInfo.isDirectory()) throw new Error('Skills must be a directory');
+  if (customInfo) await rejectSymlinks(custom);
+  for (const host of ['openai', 'claude']) {
+    const target = await projectPath(directory, 'plugins/' + host + '/skills');
     if (
-      await lstat(join(pluginRoot, path)).catch((error: NodeJS.ErrnoException) => {
+      await lstat(target).catch((error: NodeJS.ErrnoException) => {
+        if (error.code !== 'ENOENT') throw error;
+        return null;
+      })
+    )
+      throw new Error(`plugins/${host}/skills already exists. Review the existing bundle.`);
+  }
+  for (const path of Object.keys(files)) {
+    const full = await projectPath(directory, 'plugins/' + path);
+    if (
+      await lstat(full).catch((error: NodeJS.ErrnoException) => {
         if (error.code !== 'ENOENT') throw error;
         return null;
       })
     )
       throw new Error(`plugins/${path} already exists. Version and edit the existing bundle.`);
+  }
   for (const [path, value] of Object.entries(files)) {
     const full = join(pluginRoot, path);
     await mkdir(dirname(full), { recursive: true });
     await writeFile(full, JSON.stringify(value, null, 2) + '\n', { flag: 'wx' });
   }
-  const custom = resolve(directory, skillsDir);
-  const customInfo = await lstat(custom).catch((error: NodeJS.ErrnoException) => {
-    if (error.code !== 'ENOENT') throw error;
-    return null;
-  });
-  if (customInfo?.isSymbolicLink()) throw new Error('Skills directory cannot be a symbolic link');
   for (const host of ['openai', 'claude']) {
     const target = join(pluginRoot, host, 'skills');
     if (customInfo?.isDirectory()) {

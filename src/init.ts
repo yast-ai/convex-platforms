@@ -1,11 +1,14 @@
 import { readFile, writeFile, mkdir, lstat } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
+import { projectPath } from './paths.js';
 import type { Manifest } from './contract.js';
 
 export async function initializeProject({ root = '.', name = 'my-app' }: { root?: string; name?: string }) {
   const directory = resolve(root);
   if (!/^[a-z][a-z0-9-]{0,63}$/.test(name)) throw new Error('Use a lowercase application slug');
-  const packagePath = resolve(directory, 'package.json');
+  const packagePath = await projectPath(directory, 'package.json');
+  await projectPath(directory, 'convex/auth.config.ts');
+  await projectPath(directory, 'convex/http.ts');
   const pkg = JSON.parse(await readFile(packagePath, 'utf8')) as {
     dependencies?: Record<string, string>;
     scripts?: Record<string, string>;
@@ -47,7 +50,7 @@ export async function initializeProject({ root = '.', name = 'my-app' }: { root?
       throw new Error(`Existing script ${key} differs; refusing to overwrite it`);
   // Check every new destination before writing anything. Existing application wiring is never overwritten.
   for (const [path, content] of Object.entries(files)) {
-    const full = resolve(directory, path);
+    const full = await projectPath(directory, path);
     const info = await lstat(full).catch((error: NodeJS.ErrnoException) => {
       if (error.code !== 'ENOENT') throw error;
       return null;
@@ -57,7 +60,7 @@ export async function initializeProject({ root = '.', name = 'my-app' }: { root?
       throw new Error(`${path} already exists. Review it before initializing.`);
   }
   for (const [path, content] of Object.entries(files)) {
-    const full = resolve(directory, path);
+    const full = await projectPath(directory, path);
     await mkdir(dirname(full), { recursive: true });
     if (!(await exists(full))) await writeFile(full, content, { flag: 'wx' });
   }

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 import { Command, CommanderError } from 'commander';
 import type { JsonSchema, Operation } from './contract.js';
 import { ApiError, request, siteOrigin } from './transport.js';
@@ -59,6 +60,10 @@ export function validateCliOperations(value: unknown): Operation[] {
       flags.add(flag);
     }
   }
+  const commands = [...keys];
+  for (const command of commands)
+    if (commands.some((other) => other.startsWith(command + ' ')))
+      throw new Error('CLI command conflicts with a resource group');
   return value as Operation[];
 }
 export function buildCli(operations: Operation[] = [], name = 'convex-platforms') {
@@ -104,6 +109,28 @@ export function buildCli(operations: Operation[] = [], name = 'convex-platforms'
     .option('--name <name>', 'Application name', 'my-app')
     .option('--check', 'Fail if generated outputs are stale, without writing')
     .action(async (options) => {
+      if (!process.versions.bun) {
+        // App discovery imports TypeScript and uses Bun's extension resolution.
+        const args = [
+          fileURLToPath(import.meta.url),
+          'generate',
+          '--root',
+          options.root,
+          '--name',
+          options.name,
+        ];
+        if (options.check) args.push('--check');
+        await new Promise<void>((resolve, reject) => {
+          const child = spawn('bun', args, { stdio: 'inherit' });
+          child.once('error', () =>
+            reject(new Error('Generation requires Bun 1.3+. Install https://bun.sh')),
+          );
+          child.once('exit', (code) =>
+            code === 0 ? resolve() : reject(new Error('Platform generation failed')),
+          );
+        });
+        return;
+      }
       const { generatePlatforms } = await import('./generate.js');
       await generatePlatforms(options);
       console.log('Platform outputs verified.');

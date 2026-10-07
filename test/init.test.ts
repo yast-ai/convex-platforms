@@ -44,3 +44,18 @@ describe('project initialization', () => {
     }
   });
 });
+
+test('rejects symlinked parent directories before any writes', async () => {
+  const root = await fixture();
+  const outside = await fixture();
+  try {
+    const { symlink } = await import('node:fs/promises');
+    await symlink(outside, join(root, 'convex'));
+    await expect(initializeProject({ root })).rejects.toThrow('symbolic-link');
+    expect(await Bun.file(join(outside, 'platforms.ts')).exists()).toBe(false);
+    expect(await Bun.file(join(root, 'platforms/SETUP.md')).exists()).toBe(false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(outside, { recursive: true, force: true });
+  }
+});
