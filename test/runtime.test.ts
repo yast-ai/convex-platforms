@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { httpRouter } from 'convex/server';
+import { ConvexError } from 'convex/values';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import type { ApiKey, OrganizationMembership, ValidateApiKeyResponse } from '@workos-inc/node';
 import type { Manifest } from '../src/contract.js';
@@ -200,6 +201,38 @@ describe('Convex Platforms runtime', () => {
     expect(calls.map((call) => call.kind)).toEqual(['query', 'mutation', 'action']);
   });
 
+  test('preserves safe Convex business errors and hides unknown failures', async () => {
+    const known = runtime();
+    known.ctx.runQuery = async () => {
+      throw new ConvexError({ code: 'not_found', status: 404 });
+    };
+    const knownResponse = await known.server.fetch(
+      new Request('https://app.example.com/api/v1/todos/list', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer sk_test' },
+        body: '{}',
+      }),
+      known.ctx as never,
+    );
+    expect(knownResponse.status).toBe(404);
+    expect(await knownResponse.json()).toEqual({ status: 'error', error: { code: 'not_found' } });
+
+    const unknown = runtime();
+    unknown.ctx.runQuery = async () => {
+      throw new Error('database password leaked');
+    };
+    const unknownResponse = await unknown.server.fetch(
+      new Request('https://app.example.com/api/v1/todos/list', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer sk_test' },
+        body: '{}',
+      }),
+      unknown.ctx as never,
+    );
+    expect(unknownResponse.status).toBe(500);
+    expect(await unknownResponse.text()).not.toContain('password');
+  });
+
   test('challenges missing MCP credentials and rejects an invalid session issuer', async () => {
     const { server, ctx } = runtime();
     const challenge = await server.fetch(
@@ -304,6 +337,28 @@ describe('Convex Platforms runtime', () => {
     expect(router.getRoutes().map(([path]) => path)).toContain('/cli/manifest');
   });
 
+  test('keeps ChatGPT and Claude CORS on MCP only', async () => {
+    const { server, ctx } = runtime();
+    const api = await server.fetch(
+      new Request('https://app.example.com/api/v1/todos/list', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer sk_test', Origin: 'https://chatgpt.com' },
+        body: '{}',
+      }),
+      ctx as never,
+    );
+    expect(api.headers.get('access-control-allow-origin')).toBeNull();
+    const mcp = await server.fetch(
+      new Request('https://app.example.com/mcp', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer session', Origin: 'https://chatgpt.com' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+      }),
+      ctx as never,
+    );
+    expect(mcp.headers.get('access-control-allow-origin')).toBe('https://chatgpt.com');
+  });
+
   test('accepts MCP notifications and preserves a request id in JSON-RPC errors', async () => {
     const { server, ctx } = runtime();
     const notification = await server.fetch(
@@ -373,6 +428,20 @@ describe('Convex Platforms runtime', () => {
         },
       }),
     ).toThrow('HTTPS');
+    expect(() =>
+      createPlatformServer({
+        manifest: {
+          ...manifest,
+          widgets: { ...manifest.widgets, bad: { text: 'x', csp: { scriptDomains: [] } as never } },
+        },
+        workos: {
+          clientId: 'x',
+          apiKey: 'x',
+          authkitUrl: 'https://auth.example.com',
+          siteUrl: 'https://app.example.com',
+        },
+      }),
+    ).toThrow('unsupported');
     expect(() =>
       createPlatformServer({
         manifest,

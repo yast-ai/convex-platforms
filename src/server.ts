@@ -7,12 +7,13 @@ import {
   type HttpActionBuilder,
   type HttpRouter,
 } from 'convex/server';
-import { convexToJson, type Value } from 'convex/values';
+import { ConvexError, convexToJson, type Value } from 'convex/values';
 import type { Identity, Manifest, Operation, Widget } from './contract.js';
 import { createMcpOAuth, type McpOAuth } from './oauth.js';
 
 const maxInputBytes = 1_000_000;
 const identityKeys = ['orgId', 'userId', 'role', 'user', 'args'];
+const cspDirectives = new Set(['connectDomains', 'resourceDomains', 'frameDomains', 'baseUriDomains']);
 type RuntimeCtx = GenericActionCtx<GenericDataModel>;
 type Claims = { subject?: string; issuer?: string; org_id?: string; aud?: string | string[] };
 export type WorkOSPort = {
@@ -66,6 +67,8 @@ function safeOrigin(value: string, name: string): string {
 function validateWidget(name: string, widget: Widget) {
   if (!widget || typeof widget.text !== 'string') throw new Error(`Widget ${name} must contain HTML text`);
   for (const [directive, domains] of Object.entries(widget.csp ?? {})) {
+    if (!cspDirectives.has(directive))
+      throw new Error(`Widget ${name} has an unsupported ${directive} CSP directive`);
     if (!Array.isArray(domains)) throw new Error(`Widget ${name} has an invalid ${directive} CSP directive`);
     for (const domain of domains) safeOrigin(domain, `Widget ${name} ${directive}`);
   }
@@ -102,8 +105,32 @@ function validateManifest(manifest: Manifest) {
   for (const [name, widget] of Object.entries(manifest.widgets)) validateWidget(name, widget);
 }
 
+function businessError(error: unknown): RuntimeError | null {
+  if (
+    !(error instanceof ConvexError) ||
+    !error.data ||
+    typeof error.data !== 'object' ||
+    Array.isArray(error.data)
+  )
+    return null;
+  const data = error.data as Record<string, unknown>;
+  const status = data.status;
+  const code = data.code;
+  if (
+    typeof status !== 'number' ||
+    !Number.isInteger(status) ||
+    status < 400 ||
+    status > 499 ||
+    typeof code !== 'string' ||
+    !/^[a-z][a-z0-9_]{0,63}$/.test(code)
+  )
+    return null;
+  return new RuntimeError(status, code);
+}
+
 function errorResponse(error: unknown, mcp = false) {
-  const runtime = error instanceof RuntimeError ? error : new RuntimeError(500, 'request_failed');
+  const runtime =
+    error instanceof RuntimeError ? error : (businessError(error) ?? new RuntimeError(500, 'request_failed'));
   if (mcp)
     return Response.json(
       { jsonrpc: '2.0', error: { code: runtime.status, message: runtime.code }, id: null },
@@ -115,7 +142,8 @@ function errorResponse(error: unknown, mcp = false) {
 type JsonRpcId = string | number | null;
 
 function jsonRpcError(error: unknown, id: JsonRpcId) {
-  const runtime = error instanceof RuntimeError ? error : new RuntimeError(500, 'request_failed');
+  const runtime =
+    error instanceof RuntimeError ? error : (businessError(error) ?? new RuntimeError(500, 'request_failed'));
   return Response.json(
     { jsonrpc: '2.0', error: { code: runtime.status, message: runtime.code }, id },
     { status: runtime.status },
@@ -185,12 +213,11 @@ export function createPlatformServer(config: PlatformServerConfig): PlatformServ
   );
   const workos: WorkOSPort =
     config.workosClient ?? new WorkOS(config.workos.apiKey, { clientId: config.workos.clientId });
-  const allowedOrigins = new Set([
+  const apiOrigins = new Set([
     siteOrigin,
-    'https://chatgpt.com',
-    'https://claude.ai',
     ...(config.corsOrigins ?? []).map((origin) => safeOrigin(origin, 'corsOrigins')),
   ]);
+  const mcpOrigins = new Set([...apiOrigins, 'https://chatgpt.com', 'https://claude.ai']);
 
   async function membership(orgId: string, userId: string): Promise<Identity> {
     const memberships = await workos.userManagement.listOrganizationMemberships({
@@ -290,7 +317,7 @@ export function createPlatformServer(config: PlatformServerConfig): PlatformServ
         : null;
     const fail = (error: RuntimeError) => {
       const response = jsonRpcError(error, id);
-      for (const [name, value] of Object.entries(cors(request, allowedOrigins)))
+      for (const [name, value] of Object.entries(cors(request, mcpOrigins)))
         response.headers.set(name, value);
       return response;
     };
@@ -310,11 +337,11 @@ export function createPlatformServer(config: PlatformServerConfig): PlatformServ
       const identity = await sessionIdentity(ctx, true);
       if (!hasId) {
         if (method.startsWith('notifications/'))
-          return new Response(null, { status: 202, headers: cors(request, allowedOrigins) });
+          return new Response(null, { status: 202, headers: cors(request, mcpOrigins) });
         throw new RuntimeError(400, 'jsonrpc_id_required');
       }
       const respond = (result: unknown) =>
-        Response.json({ jsonrpc: '2.0', id, result }, { headers: cors(request, allowedOrigins) });
+        Response.json({ jsonrpc: '2.0', id, result }, { headers: cors(request, mcpOrigins) });
       if (method === 'initialize')
         return respond({
           protocolVersion: '2025-06-18',
@@ -381,7 +408,7 @@ export function createPlatformServer(config: PlatformServerConfig): PlatformServ
       throw new RuntimeError(404, 'method_not_found');
     } catch (error) {
       const response = jsonRpcError(error, id);
-      for (const [name, value] of Object.entries(cors(request, allowedOrigins)))
+      for (const [name, value] of Object.entries(cors(request, mcpOrigins)))
         response.headers.set(name, value);
       return response;
     }
@@ -394,7 +421,7 @@ export function createPlatformServer(config: PlatformServerConfig): PlatformServ
         return new Response(null, {
           status: 204,
           headers: {
-            ...cors(request, allowedOrigins),
+            ...cors(request, path === '/mcp' ? mcpOrigins : apiOrigins),
             'Access-Control-Allow-Methods': 'POST, OPTIONS',
             'Access-Control-Allow-Headers': 'Authorization, Content-Type, MCP-Protocol-Version',
           },
@@ -420,12 +447,12 @@ export function createPlatformServer(config: PlatformServerConfig): PlatformServ
       const input = await jsonInput(request);
       return Response.json(
         { status: 'success', value: await invoke(ctx, operation, identity, input) },
-        { headers: cors(request, allowedOrigins) },
+        { headers: cors(request, apiOrigins) },
       );
     } catch (error) {
       const isMcp = path === '/mcp';
       const response = errorResponse(error, isMcp);
-      for (const [name, value] of Object.entries(cors(request, allowedOrigins)))
+      for (const [name, value] of Object.entries(cors(request, isMcp ? mcpOrigins : apiOrigins)))
         response.headers.set(name, value);
       if (isMcp && error instanceof RuntimeError && error.status === 401)
         response.headers.set('WWW-Authenticate', `Bearer resource_metadata="${oauth.metadataUrl}"`);
