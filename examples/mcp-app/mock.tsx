@@ -3,10 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { TodoList } from './TodoList.js';
 
 function MockTodoList() {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [loading, setLoading] = useState(false);
-  const [todos, setTodos] = useState([
-    { _id: 'mock-1', text: 'Verify this UI in an MCP host' },
-  ]);
+  const [todos, setTodos] = useState([{ _id: 'mock-1', text: 'Verify this UI in an MCP host' }]);
   const [status, setStatus] = useState('Ready to refresh the example data.');
   const refreshTimer = useRef<number | null>(null);
 
@@ -32,7 +31,14 @@ function MockTodoList() {
   };
 
   return (
-    <div data-theme="light">
+    <div data-theme={theme}>
+      <button
+        className="mock-theme"
+        type="button"
+        onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+      >
+        Switch to {theme === 'light' ? 'dark' : 'light'} theme
+      </button>
       <p className="mock-notice">
         <strong>Browser-only mock.</strong> It does not connect to an MCP host.
       </p>

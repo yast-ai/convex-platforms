@@ -12,6 +12,8 @@ Verified on 2026-10-07 using Bun 1.4.2, Node 24 and Python 3.12. This record dis
 - The installed CLI discovered the deployed commands and completed create/list/delete. Both generated TypeScript and Python SDKs completed the same sequence against the deployed API.
 - The 90-second onboarding video rendered and its decoded frames were inspected. Its provider setup scenes are labeled diagrams.
 
+Real membership deactivation stopped API access immediately (401); reactivation restored access (200).
+
 A real deployment test caught callable native Convex definitions being skipped by discovery. The repair includes native builder fixtures and packed-consumer regression coverage; synthetic metadata fixtures no longer provide the generator's integration proof.
 
 ## Interactive checks still required
@@ -24,4 +26,14 @@ Actual provider dashboard footage has not been recorded. No diagram is presented
 
 The initial `@disposabl/convex-platforms@0.1.0` publication succeeded from the authenticated maintainer CLI. Its public version endpoint and tarball both returned HTTP 200. npm recorded the package as public.
 
-npm confirmed the trusted publisher for repository `yast-ai/convex-platforms`, workflow `publish.yml`, with direct publish permission. Version `0.1.1` is a documentation patch used to verify actual automatic publication after a version change on `main`. Its successful Actions run and fresh registry installation must be recorded after completion. No skipped publish job or dry run counts as automated publication.
+npm confirmed the trusted publisher for repository `yast-ai/convex-platforms`, workflow `publish.yml`, with direct publish permission. Version `0.1.1` published automatically after the version change on `main`, from source commit `68ea3c0ce7df104607907f354bff8d6e3862da65`. The [publish workflow](https://github.com/yast-ai/convex-platforms/actions/runs/37598838964) executed its publish step successfully and signed GitHub Actions provenance. The matching [CI run](https://github.com/yast-ai/convex-platforms/actions/runs/37598838926) passed.
+
+npm returned version `0.1.1`, executable `dist/cli.js`, and SLSA provenance metadata. Published integrity:
+
+```text
+sha512-og1FsdyAxIdxiQlRnjolqlfHi1D4MgryQU5hsCh4HROFjZv9jZE8bRFr4WXgOOisrxY6PmaeXMXelYDUMrUC3Q==
+```
+
+A completely fresh consumer installed the exact version from the public registry, ran `init`, generated all three native todo operations, passed the generation check and executed the installed CLI help. The development demo also replaced its local tarball dependency with registry version `0.1.1`.
+
+No long-lived npm publishing token was stored in GitHub. The initializer does not configure a consuming application's deployment CI; each app must generate before its own deployment.

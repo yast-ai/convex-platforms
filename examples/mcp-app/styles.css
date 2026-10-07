@@ -20,6 +20,8 @@ body {
 [data-theme='light'] {
   color-scheme: light;
   --surface: #ffffff;
+  --page: #f6f8fa;
+  --foreground: #24292f;
   --border: #d0d7de;
   --muted: #57606a;
   --accent: #0969da;
@@ -30,11 +32,24 @@ body {
 [data-theme='dark'] {
   color-scheme: dark;
   --surface: #161b22;
+  --page: #0d1117;
+  --foreground: #c9d1d9;
   --border: #30363d;
   --muted: #8b949e;
   --accent: #58a6ff;
   --accent-text: #0d1117;
   --alert: #ff7b72;
+}
+
+[data-theme] {
+  background: var(--page);
+  color: var(--foreground);
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.mock-theme {
+  margin-bottom: 1rem;
 }
 
 main {

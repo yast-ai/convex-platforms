@@ -14,6 +14,8 @@ Create `platforms/ui/todos.html` with a root element and a module script pointin
 
 UI build tooling is optional. Install Vite, its React plugin, `vite-plugin-singlefile`, and your chosen CSS tooling in the consuming app. The generator reports missing build dependencies. React and React DOM are optional package peers.
 
+See the [React todo example](../examples/mcp-app/README.md) for the host bridge, structured results, native pagination, and a clearly labeled browser mock.
+
 Import presentational components from your web app when useful. Keep Convex web hooks and the MCP host bridge in separate wrappers. The MCP wrapper receives tool results and calls existing tools through the host; it does not embed bearer tokens or connect directly to Convex.
 
 The package React entry wraps the official MCP Apps bridge. Apply host theme/style context, show loading/errors, disable unsupported actions and refresh data through tools. Realtime subscriptions are not automatically created by attaching a UI.
