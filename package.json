@@ -58,7 +58,7 @@
     "./generate": "./dist/generate.js"
   },
   "bin": {
-    "convex-platforms": "./dist/cli.js"
+    "convex-platforms": "dist/cli.js"
   },
   "scripts": {
     "format": "prettier --write .",
