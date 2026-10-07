@@ -1,5 +1,20 @@
 # Release verification
 
+## Unified integration in 0.2.2
+
+One `createPlatforms` configuration now supplies typed native builders, selected WorkOS functions, HTTP registration and optional signed webhook handling. Consumers use one integration module; only `http.ts` imports the generated manifest and mounts the routes. The initializer scaffolds the same layout without a separate `ports.ts`. Unexported builtins remain absent; existing low-level factories remain supported.
+
+- All 96 tests passed with 350 assertions, plus format, lint, typecheck and build. After the registration export was changed to an arrow property, the nine affected tests and fresh packed-consumer checks passed again.
+- Independent source/security review found no blockers. It verified lazy callbacks, default public authentication denial, shared client configuration, matching personal prefixes and existing signature/authorization checks.
+- A fresh packed consumer imported the combined factory, compiled real DataModel and exact role types, rejected public identity arguments, generated a selected subset with a custom replacement, and compiled generated TypeScript/Python clients.
+- The installed initializer created one integration file and no `ports.ts`. After deleting all generated output, first generation succeeded without credentials; the initialized Convex files then typechecked.
+- Two development consumers compiled and deployed. Their 17 operation routes retained their logical names and native WorkOS references moved to the single integration module. Deployed OpenAPI matched the generated contracts. Seventeen live disposable WorkOS checks passed with temporary-key cleanup and account-name restoration.
+- Application format, lint, typecheck, build and generation-freshness checks passed with the final candidate.
+
+No live Connect grant or native ChatGPT/Claude installation is claimed by these checks.
+
+Release source `0f9c57b9f05545f6cee3e870d367d33e3684761b` passed [CI](https://github.com/yast-ai/convex-platforms/actions/runs/37626995936) and [actual trusted publication](https://github.com/yast-ai/convex-platforms/actions/runs/37626995946). The public tarball was downloaded and matched `sha512-1pQ58x7lbf/5lrRCJlPpG6KEM+/eHcktF24+MUw+witp3C4TwyGri4+mPVzwtpQpVTvjZaNWWdk+/A5GootX+A==`. [Signed provenance](https://search.sigstore.dev/?logIndex=3131704607) records the trusted workflow. Both consumers installed exact registry `0.2.2`, passed frozen dependency and generation checks, and deployed with Convex typechecking enabled. Final application format, lint, typecheck and build also passed.
+
 ## One-file WorkOS selection in 0.2.1
 
 Consumers now select native internal functions from `workos.functions` in one Convex module. Optional authenticated web/mobile functions use `workos.publicFunctions`. Canonical resource metadata preserves API, MCP, CLI and SDK naming while native references retain the actual source module. Consumers can omit builtins, replace them with custom native operations, and select interfaces independently per operation.

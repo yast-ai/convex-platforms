@@ -4,6 +4,9 @@ Convex Platforms is published as `@disposabl/convex-platforms` from [yast-ai/con
 
 ## Verified
 
+- Version 0.2.2 is downloadable from the public registry. [CI](https://github.com/yast-ai/convex-platforms/actions/runs/37626995936) and [actual trusted publishing](https://github.com/yast-ai/convex-platforms/actions/runs/37626995946) passed at `0f9c57b9f05545f6cee3e870d367d33e3684761b`; downloaded SHA-512 matched the candidate and [signed provenance](https://search.sigstore.dev/?logIndex=3131704607) was recorded.
+- One `createPlatforms` call now configures native builders, selected WorkOS operations, HTTP registration and optional signed webhook handling. The initializer creates the same single integration file; it creates no separate `ports.ts`. All 96 tests, 350 assertions, packed-consumer checks, first-generation bootstrap checks and independent review passed. Two consumers installed exact registry `0.2.2`, compiled and deployed on development; 17 live disposable WorkOS checks passed with cleanup. See the [unified setup guide](docs/workos.md).
+
 - Version 0.2.1 is downloadable from the public npm registry. [CI](https://github.com/yast-ai/convex-platforms/actions/runs/37621336189) and [actual trusted publication](https://github.com/yast-ai/convex-platforms/actions/runs/37621336274) passed at `c10140e6b38801cf637a638a16307631e73d3885`. The downloaded tarball matched registry SHA-512 integrity and [signed provenance](https://search.sigstore.dev/?logIndex=3131090494) was recorded.
 - One-file WorkOS selection, optional public aliases, custom native replacements and per-operation interface selection are verified. All 90 tests passed with 314 assertions, independent review found no blockers, and fresh packed-consumer verification passed. Two development consumers compiled and deployed; 17 live disposable WorkOS checks passed with cleanup. Exact registry installs passed frozen dependency and generation checks. See the [one-file guide](docs/workos.md).
 
