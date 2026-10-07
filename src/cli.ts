@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { Command, CommanderError } from 'commander';
@@ -214,7 +214,13 @@ export async function runCli(argv = process.argv) {
   if (!args.length) program.outputHelp();
   else await program.parseAsync(argv);
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+let isEntrypoint = false;
+try {
+  isEntrypoint = !!process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
+} catch {
+  /* An imported CLI has no executable entrypoint. */
+}
+if (isEntrypoint) {
   runCli().catch((error) => {
     if (error instanceof CommanderError) process.exitCode = error.exitCode;
     else {

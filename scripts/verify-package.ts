@@ -144,6 +144,19 @@ try {
     ],
     consumer,
   );
+  const installedBin = join(consumer, 'node_modules/.bin/convex-platforms');
+  assert(
+    run(installedBin, ['--help'], consumer).includes('Usage: convex-platforms'),
+    'Installed executable is missing a working shebang',
+  );
+  assert(
+    run('bun', [installedBin, '--help'], consumer).includes('Usage: convex-platforms'),
+    'Installed Bun CLI did not execute',
+  );
+  assert(
+    run('node', [installedBin, '--help'], consumer).includes('Usage: convex-platforms'),
+    'Installed Node CLI did not execute',
+  );
   await Bun.write(
     join(consumer, 'index.ts'),
     `import { v } from 'convex/values';
