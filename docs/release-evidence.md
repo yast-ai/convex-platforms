@@ -10,6 +10,7 @@ Verified on 2026-10-07 using Bun 1.4.2, Node 24 and Python 3.12. This record dis
 - A fresh Convex development project `yast-ai/convex-platforms-demo`, deployment `hip-lark-939`, provisioned a managed WorkOS environment. CIMD was enabled and its exact `/mcp` resource registered. The package installed from the reviewed tarball and deployed successfully.
 - Real WorkOS user API keys resolved the active `demo-builder` organization membership role. API create/list/delete returned 200. A second organization saw no records and could not delete the first organization's record (404). Client identity forgery returned 400. The application's structured `invalid_text` error preserved its safe 400 status.
 - The installed CLI discovered the deployed commands and completed create/list/delete. Both generated TypeScript and Python SDKs completed the same sequence against the deployed API.
+- The installed npm CLI completed real WorkOS device authorization in Chrome with a disposable development user, including WorkOS organization selection. Device-authenticated create/list/delete passed. Refresh credentials rotated without organization drift, the private session stored only the refresh token and organization/client identifiers with directory mode 0700 and file mode 0600, logout removed it, and a subsequent operation was rejected.
 - The 90-second onboarding video rendered and its decoded frames were inspected. Its provider setup scenes are labeled diagrams.
 
 Real membership deactivation stopped API access immediately (401); reactivation restored access (200).
@@ -18,9 +19,9 @@ A real deployment test caught callable native Convex definitions being skipped b
 
 ## Interactive checks still required
 
-Real CLI device confirmation/refresh, WorkOS Connect OAuth authorization, installation in ChatGPT and Claude, and a visible MCP Apps UI interaction have not been verified in those hosts. Protocol tests and public discovery checks do not substitute for that evidence.
+WorkOS Connect OAuth authorization, installation in ChatGPT and Claude, and a visible MCP Apps UI interaction have not been verified in those hosts. Protocol tests and public discovery checks do not substitute for that evidence.
 
-Actual provider dashboard footage has not been recorded. No diagram is presented as a dashboard recording.
+Actual provider dashboard stills have been captured and included in a rendered setup tour. It is a screenshot-based tour, not a continuous setup recording. Edited onboarding imagery is labeled separately. No diagram is presented as a dashboard recording.
 
 ## Registry publication
 

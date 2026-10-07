@@ -18,9 +18,17 @@ For an unconnected team, open the development deployment's **Settings → Integr
 
 Workspace creation requires a team admin and an eligible verified email on the Convex profile. An email already used by another Convex-managed WorkOS integration cannot create a second workspace. If creation is disabled, verify another email in **Profile Settings → Emails**. Do not disconnect a working integration to reuse its email. Review the WorkOS terms during account creation. See [Convex's automatic AuthKit configuration](https://docs.convex.dev/auth/authkit/auto-provision).
 
-![Illustrative new-team WorkOS setup dialog](assets/new-team-setup-illustration.png)
+![Unconnected QA deployment with the WorkOS plus control](assets/convex-qa-workos-plus.jpg)
 
-This AI-generated illustration explains workspace creation. Its surrounding dashboard layout is illustrative; use the current Convex dashboard's actual controls. It does not show a completed account connection.
+The screenshot above is the real unconnected development deployment in `dispsoabl-qa`. Click the WorkOS plus control to open the configuration dialog.
+
+![WorkOS workspace dialog, with the create button edited to illustrate its enabled appearance](assets/convex-qa-create-workos-illustration.png)
+
+The dialog uses the actual QA screenshot. Only the create button's appearance was edited with image generation to illustrate an eligible account. The real QA button was disabled because no eligible verified email was available. This image does not show a completed QA connection.
+
+![Actual active WorkOS integration in the Yast development demo](assets/convex-yast-workos-connected.jpg)
+
+This final capture shows the real connected integration in the `yast-ai` team's development demo. It illustrates the resulting Active state in a separate configured team. The sequence uses two teams and does not claim QA was connected.
 
 ## 2. Existing Convex with managed WorkOS
 
