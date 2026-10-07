@@ -66,21 +66,21 @@ Generate before every deployment. Keep generated outputs out of source control a
 
 ## Choose interfaces
 
-| Metadata | Result |
-| --- | --- |
-| omitted, `false`, or `{}` | No generated interfaces |
-| `true` | API, MCP, CLI and both SDKs |
-| `{ mcp: true }` | MCP only |
-| `{ api: true, 'sdk-typescript': true }` | API and TypeScript SDK |
-| `{ cli: true, 'sdk-python': true }` | CLI and Python SDK, with authenticated HTTP transport |
+| Metadata                                | Result                                                |
+| --------------------------------------- | ----------------------------------------------------- |
+| omitted, `false`, or `{}`               | No generated interfaces                               |
+| `true`                                  | API, MCP, CLI and both SDKs                           |
+| `{ mcp: true }`                         | MCP only                                              |
+| `{ api: true, 'sdk-typescript': true }` | API and TypeScript SDK                                |
+| `{ cli: true, 'sdk-python': true }`     | CLI and Python SDK, with authenticated HTTP transport |
 
 Public Convex wrappers remain independent. Interface selection does not grant permission to execute an operation.
 
 Names derive from feature folders and function names:
 
-| Source | HTTP | MCP | CLI | SDK |
-| --- | --- | --- | --- | --- |
-| `todos/internal.ts:createTodo` | `/api/v1/todos/create` | `todos_create` | `todos create` | `client.todos.create` |
+| Source                                | HTTP                         | MCP                   | CLI                   | SDK                                   |
+| ------------------------------------- | ---------------------------- | --------------------- | --------------------- | ------------------------------------- |
+| `todos/internal.ts:createTodo`        | `/api/v1/todos/create`       | `todos_create`        | `todos create`        | `client.todos.create`                 |
 | `members/actions.ts:updateMemberRole` | `/api/v1/members/updateRole` | `members_update_role` | `members update-role` | TS `updateRole`, Python `update_role` |
 
 Arguments are flat JSON objects. Authentication fields never appear in generated input schemas.

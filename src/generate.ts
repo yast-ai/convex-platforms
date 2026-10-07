@@ -233,7 +233,7 @@ export async function generatePlatforms(options: GeneratePlatformsOptions = {}):
       operations.push({
         name,
         ...names,
-        function: `${rel}:${name}`,
+        function: `${rel.replace(/\.ts$/, '')}:${name}`,
         type: definition.isAction ? 'action' : definition.isMutation ? 'mutation' : 'query',
         platforms,
         description: typeof definition.description === 'string' ? definition.description : label(name),

@@ -7,5 +7,8 @@
     "dev": "bun run ports:generate && convex dev",
     "deploy": "bun run ports:generate && convex deploy"
   },
-  "dependencies": { "@yast-ai/convex-platforms": "^0.1.0", "convex": "^1.46.0" }
+  "dependencies": {
+    "@yast-ai/convex-platforms": "^0.1.0",
+    "convex": "^1.46.0"
+  }
 }

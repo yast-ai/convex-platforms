@@ -17,5 +17,19 @@ export type Operation = {
   outputSchema: JsonSchema;
   ui?: string;
 };
-export type Widget = { text: string; csp?: { connectDomains?: string[]; resourceDomains?: string[]; frameDomains?: string[]; baseUriDomains?: string[] } };
-export type Manifest = { version: 1; name: string; operations: Operation[]; widgets: Record<string, Widget>; openapi: Record<string, unknown> };
+export type Widget = {
+  text: string;
+  csp?: {
+    connectDomains?: string[];
+    resourceDomains?: string[];
+    frameDomains?: string[];
+    baseUriDomains?: string[];
+  };
+};
+export type Manifest = {
+  version: 1;
+  name: string;
+  operations: Operation[];
+  widgets: Record<string, Widget>;
+  openapi: Record<string, unknown>;
+};

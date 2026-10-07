@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { generatePlatforms } from '../src/generate.js';
 
@@ -12,7 +12,7 @@ async function fixture(source: string) {
   const root = await mkdtemp(join(tmpdir(), 'convex-platforms-'));
   roots.push(root);
   await mkdir(join(root, 'convex/todos'), { recursive: true });
-  await symlink('/private/tmp/portloom-generator/node_modules', join(root, 'node_modules'));
+  await symlink(resolve(import.meta.dirname, '../node_modules'), join(root, 'node_modules'));
   await Bun.write(join(root, 'convex/todos/internal.ts'), source);
   return root;
 }

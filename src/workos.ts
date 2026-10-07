@@ -1,6 +1,9 @@
 import type { AuthenticationResponseResponse } from '@workos-inc/node';
 const endpoint = 'https://api.workos.com/user_management';
-export type CliTokens = Pick<AuthenticationResponseResponse, 'access_token' | 'refresh_token' | 'organization_id'>;
+export type CliTokens = Pick<
+  AuthenticationResponseResponse,
+  'access_token' | 'refresh_token' | 'organization_id'
+>;
 async function post(path: string, values: Record<string, string>) {
   const response = await fetch(`${endpoint}/${path}`, {
     method: 'POST',
@@ -12,7 +15,8 @@ async function post(path: string, values: Record<string, string>) {
   const data: unknown = await response.json().catch(() => {
     throw new Error('WorkOS returned an invalid response.');
   });
-  if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('WorkOS returned an invalid response.');
+  if (!data || typeof data !== 'object' || Array.isArray(data))
+    throw new Error('WorkOS returned an invalid response.');
   return { response, data: data as Record<string, unknown> };
 }
 function tokens(data: Record<string, unknown>): CliTokens {
@@ -25,7 +29,10 @@ function tokens(data: Record<string, unknown>): CliTokens {
   };
 }
 /** Public device flow. No WorkOS server key or client secret is used. */
-export async function loginCli(clientId: string, display: (url: string, code: string) => void): Promise<CliTokens> {
+export async function loginCli(
+  clientId: string,
+  display: (url: string, code: string) => void,
+): Promise<CliTokens> {
   const { response, data } = await post('authorize/device', {
     client_id: clientId,
   });
@@ -43,9 +50,12 @@ export async function loginCli(clientId: string, display: (url: string, code: st
   )
     throw new Error('Unable to start WorkOS login.');
   const url = new URL(
-    typeof data.verification_uri_complete === 'string' ? data.verification_uri_complete : data.verification_uri,
+    typeof data.verification_uri_complete === 'string'
+      ? data.verification_uri_complete
+      : data.verification_uri,
   );
-  if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Invalid WorkOS verification URL.');
+  if (url.protocol !== 'https:' || url.username || url.password)
+    throw new Error('Invalid WorkOS verification URL.');
   display(url.href, data.user_code);
   const deadline = Date.now() + Math.min(data.expires_in, 900) * 1000;
   let interval = Math.max(1, data.interval) * 1000;

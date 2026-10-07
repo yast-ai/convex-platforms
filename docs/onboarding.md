@@ -23,7 +23,7 @@ Use the WorkOS environment linked to that exact Convex deployment, and complete 
 
 ## 3. Existing Convex with an existing WorkOS team
 
-Convex's fully managed provisioning requires a Convex-managed WorkOS team. If you retain your existing independent WorkOS team, manually configure each development/preview/production environment and the corresponding Convex variables.
+Creating additional WorkOS environments through Convex requires a Convex-managed WorkOS team. Convex can still auto-configure an existing environment when its credentials and the appropriate authKit section in convex.json are present. If you retain an independent WorkOS team, provide each environment's credentials explicitly; do not assume new environments are auto-provisioned. See [automatic AuthKit configuration](https://docs.convex.dev/auth/authkit/auto-provision).
 
 Set `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, and the trusted public HTTPS AuthKit origin `WORKOS_AUTHKIT_URL` on the target Convex deployment. Configure web callback URLs using your framework's WorkOS integration. Do not share production credentials with development or browser bundles.
 
