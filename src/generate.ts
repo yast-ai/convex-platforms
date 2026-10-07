@@ -218,7 +218,12 @@ export async function generatePlatforms(options: GeneratePlatformsOptions = {}):
     const module = await import(`${pathToFileURL(path).href}?convex-platforms=${++discoveryVersion}`);
     for (const [name, fn] of Object.entries(module)) {
       const definition: any = fn as any;
-      if (!definition || typeof definition !== 'object' || definition.platforms === undefined) continue;
+      if (
+        !definition ||
+        (typeof definition !== 'object' && typeof definition !== 'function') ||
+        definition.platforms === undefined
+      )
+        continue;
       const where = `${rel}:${name}`;
       const platforms = selected(definition.platforms as Platforms, where);
       if (!platforms.length) continue;

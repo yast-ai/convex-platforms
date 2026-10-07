@@ -23,6 +23,31 @@ const key = Symbol.for('yast.convex-platforms.validators');
 export const listTodos = Object.assign({isInternal:true,isQuery:true,platforms:{api:true,'sdk-typescript':true,'sdk-python':true},description:'List todos'}, {[key]:{args:{orgId:v.string(),userId:v.string(),role:v.union(v.literal('admin'),v.literal('member')),done:v.optional(v.boolean())},returns:v.array(v.object({id:v.string(),done:v.boolean()}))}});`;
 
 describe('generatePlatforms', () => {
+  test('discovers real native Convex internal query and mutations', async () => {
+    const output = await mkdtemp(join(tmpdir(), 'convex-platforms-output-'));
+    roots.push(output);
+    const manifest = await generatePlatforms({
+      root: resolve(import.meta.dirname, 'fixtures'),
+      functionsDir: 'convex',
+      outputDir: output,
+      name: 'Fixture',
+    });
+    expect(manifest.operations.map((operation) => operation.name)).toEqual([
+      'createTodo',
+      'deleteTodo',
+      'listTodos',
+    ]);
+    expect(manifest.operations.map((operation) => operation.type)).toEqual(['mutation', 'mutation', 'query']);
+    expect(
+      manifest.operations.every(
+        (operation) => !Object.hasOwn(operation.inputSchema.properties as object, 'orgId'),
+      ),
+    ).toBe(true);
+    expect(
+      manifest.operations.find((operation) => operation.name === 'listTodos')?.inputSchema.properties,
+    ).toHaveProperty('paginationOpts');
+  });
+
   test('writes a flat external contract and executable SDK sources', async () => {
     const root = await fixture(definition);
     const manifest = await generatePlatforms({ root, name: 'Example' });
