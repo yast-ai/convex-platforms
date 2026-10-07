@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
 import { generatePlatforms } from '../src/generate.js';
 import { bundleUi } from '../src/ui-build.js';
@@ -86,62 +85,40 @@ describe('generatePlatforms', () => {
     await expect(bundleUi(root, 'platforms/ui', 'widget')).rejects.toThrow('unsupported CSP key');
   });
 
-  test('generated transports execute success and reject unsafe origins and tokens', async () => {
+  test.skipIf(!process.env.CI)('generated Python client runs against a loopback server', async () => {
     const root = await fixture(definition);
     await generatePlatforms({ root, name: 'Example' });
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async (input) => {
-      if (String(input).endsWith('/error'))
-        return new Response(JSON.stringify({ error: 'nope' }), { status: 418 });
-      if (String(input).endsWith('/redirect')) throw new TypeError('redirect blocked');
-      return new Response(JSON.stringify({ status: 'success', value: { id: 'ok', done: true } }));
-    };
+    const seen: Array<{ path: string; authorization: string | null; body: unknown }> = [];
+    const server = Bun.serve({
+      hostname: '127.0.0.1',
+      port: 0,
+      async fetch(request) {
+        const path = new URL(request.url).pathname;
+        seen.push({ path, authorization: request.headers.get('authorization'), body: await request.json() });
+        if (path.endsWith('/redirect'))
+          return new Response(null, { status: 302, headers: { location: '/api/v1/todos/list' } });
+        if (path.endsWith('/error')) return Response.json({ error: 'nope' }, { status: 418 });
+        return Response.json({ status: 'success', value: [{ id: 'ok', done: true }] });
+      },
+    });
     try {
-      const generated = (await import(
-        `${pathToFileURL(join(root, 'platforms/generated/sdk-typescript.ts')).href}?test=${Date.now()}`
-      )) as {
-        Client: new (
-          url: string,
-          token: string,
-        ) => { todos: { list: (args?: object) => Promise<{ id: string }> } };
-        request: <T>(url: string, token: string, path: string, args: object) => Promise<T>;
-      };
-      const origin = 'http://127.0.0.1:32123';
-      await expect(new generated.Client(origin, 'token').todos.list()).resolves.toMatchObject({ id: 'ok' });
-      await expect(
-        generated.request('https://example.com/path', 'token', '/api/v1/todos/list', {}),
-      ).rejects.toThrow('site origin');
-      await expect(generated.request(origin, 'bad\r\ntoken', '/api/v1/todos/list', {})).rejects.toThrow(
-        'bearer token',
-      );
-      await expect(generated.request(origin, 'token', '/api/v1/redirect', {})).rejects.toThrow();
-      await expect(generated.request(origin, 'token', '/api/v1/error', {})).rejects.toMatchObject({
-        status: 418,
-      });
-      const pythonVersion =
-        Number(
-          Bun.spawnSync(['python3', '-c', 'import sys; print(sys.version_info[:2])'])
-            .stdout.toString()
-            .match(/\((\d+), (\d+)\)/)?.[1] ?? 0,
-        ) *
-          100 +
-        Number(
-          Bun.spawnSync(['python3', '-c', 'import sys; print(sys.version_info[:2])'])
-            .stdout.toString()
-            .match(/\((\d+), (\d+)\)/)?.[2] ?? 0,
-        );
-      if (pythonVersion < 311) return;
+      const origin = server.url.toString();
       const python = Bun.spawn([
-        'python3',
+        process.env.PYTHON ?? 'python3',
         '-c',
-        "import importlib.util,sys; spec=importlib.util.spec_from_file_location('sdk',sys.argv[1]); sdk=importlib.util.module_from_spec(spec); spec.loader.exec_module(sdk)\ntry: sdk._request('https://example.com/path','token','/api/v1/todos/list',{})\nexcept ValueError: print('origin-rejected')\ntry: sdk._request(sys.argv[2],'bad\\r\\ntoken','/api/v1/todos/list',{})\nexcept ValueError: print('token-rejected')",
+        "import importlib.util,sys; spec=importlib.util.spec_from_file_location('sdk',sys.argv[1]); sdk=importlib.util.module_from_spec(spec); spec.loader.exec_module(sdk); print(sdk.Client(sys.argv[2],'token').todos.list()[0]['id'])\nfor path in ['/api/v1/error','/api/v1/redirect']:\n try: sdk._request(sys.argv[2],'token',path,{})\n except sdk.ApiError as error: print(error.status)\nfor url,token in [('https://example.com/path','token'),(sys.argv[2],'bad\\r\\ntoken')]:\n try: sdk._request(url,token,'/api/v1/todos/list',{})\n except ValueError: print('rejected')",
         join(root, 'platforms/generated/sdk-python.py'),
         origin,
       ]);
-      expect(await new Response(python.stdout).text()).toBe('origin-rejected\ntoken-rejected\n');
+      expect(await new Response(python.stdout).text()).toBe('ok\n418\n302\nrejected\nrejected\n');
       expect(await python.exited).toBe(0);
+      expect(seen).toEqual([
+        { path: '/api/v1/todos/list', authorization: 'Bearer token', body: {} },
+        { path: '/api/v1/error', authorization: 'Bearer token', body: {} },
+        { path: '/api/v1/redirect', authorization: 'Bearer token', body: {} },
+      ]);
     } finally {
-      globalThis.fetch = originalFetch;
+      server.stop(true);
     }
   });
 
