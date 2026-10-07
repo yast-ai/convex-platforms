@@ -179,11 +179,16 @@ void manifest;
   await Bun.write(
     join(consumer, 'convex/todos/internal.ts'),
     `import { v } from 'convex/values';
-const metadata = Symbol.for('yast.convex-platforms.validators');
-export const listTodos = Object.assign(
-  { isInternal: true, isQuery: true, platforms: { api: true, 'sdk-typescript': true, 'sdk-python': true }, description: 'List todos' },
-  { [metadata]: { args: { orgId: v.string(), userId: v.string(), role: v.string() }, returns: v.array(v.string()) } },
-);
+import type { GenericDataModel } from 'convex/server';
+import { createPlatformFunctions, identityFields } from ${JSON.stringify(packageSpecifier(packageJson.name, './functions'))};
+const { internalQuery } = createPlatformFunctions<GenericDataModel>();
+export const listTodos = internalQuery({
+  platforms: { api: true, 'sdk-typescript': true, 'sdk-python': true },
+  description: 'List todos',
+  args: { ...identityFields },
+  returns: v.array(v.string()),
+  handler: async () => [],
+});
 `,
   );
   run(
@@ -191,7 +196,10 @@ export const listTodos = Object.assign(
     [
       '--eval',
       `import { generatePlatforms } from ${JSON.stringify(packageSpecifier(packageJson.name, './generate'))};
-await generatePlatforms({ root: process.cwd(), outputDir: 'generated' });`,
+const manifest = await generatePlatforms({ root: process.cwd(), outputDir: 'generated' });
+if (manifest.operations.length !== 1 || manifest.operations[0]?.name !== 'listTodos') {
+  throw new Error('Packed generator did not discover the native internal function.');
+}`,
     ],
     consumer,
   );
