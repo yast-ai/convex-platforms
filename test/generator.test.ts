@@ -18,9 +18,18 @@ async function fixture(source: string) {
   await Bun.write(join(root, 'convex/todos/internal.ts'), source);
   return root;
 }
+const functionsPath = JSON.stringify(resolve(import.meta.dirname, '../src/functions.ts'));
 const definition = `import { v } from 'convex/values';
-const key = Symbol.for('yast.convex-platforms.validators');
-export const listTodos = Object.assign({isInternal:true,isQuery:true,platforms:{api:true,'sdk-typescript':true,'sdk-python':true},description:'List todos'}, {[key]:{args:{orgId:v.string(),userId:v.string(),role:v.union(v.literal('admin'),v.literal('member')),done:v.optional(v.boolean())},returns:v.array(v.object({id:v.string(),done:v.boolean()}))}});`;
+import { createPlatformFunctions, identityFields } from ${functionsPath};
+const { internalQuery } = createPlatformFunctions<any>();
+export const listTodos = internalQuery({ platforms: { api: true, 'sdk-typescript': true, 'sdk-python': true }, description: 'List todos', args: { ...identityFields, done: v.optional(v.boolean()) }, returns: v.array(v.object({ id: v.string(), done: v.boolean() })), handler: async () => [] });`;
+const allTypes = `${definition}
+const { internalMutation, internalAction } = createPlatformFunctions<any>();
+export const createTodo = internalMutation({ platforms: true, args: { ...identityFields, text: v.string() }, returns: v.string(), handler: async () => 'todo' });
+export const runTodo = internalAction({ platforms: { mcp: true }, args: { ...identityFields, id: v.string() }, returns: v.null(), handler: async () => null });
+export const ignoredTodo = internalQuery({ platforms: false, args: { ...identityFields }, returns: v.null(), handler: async () => null });
+export const omittedTodo = internalQuery({ args: { ...identityFields }, returns: v.null(), handler: async () => null });`;
+const publicDefinition = `${definition}\nObject.assign(listTodos, { isInternal: false });`;
 
 describe('generatePlatforms', () => {
   test('discovers real native Convex internal query and mutations', async () => {
@@ -46,6 +55,18 @@ describe('generatePlatforms', () => {
     expect(
       manifest.operations.find((operation) => operation.name === 'listTodos')?.inputSchema.properties,
     ).toHaveProperty('paginationOpts');
+  });
+
+  test('selects real native query, mutation, and action platform metadata', async () => {
+    const root = await fixture(allTypes);
+    const manifest = await generatePlatforms({ root, name: 'Example' });
+    expect(
+      manifest.operations.map((operation) => [operation.name, operation.type, operation.platforms]),
+    ).toEqual([
+      ['createTodo', 'mutation', ['api', 'mcp', 'cli', 'sdk-typescript', 'sdk-python']],
+      ['listTodos', 'query', ['api', 'sdk-typescript', 'sdk-python']],
+      ['runTodo', 'action', ['mcp']],
+    ]);
   });
 
   test('writes a flat external contract and executable SDK sources', async () => {
@@ -173,7 +194,7 @@ describe('generatePlatforms', () => {
   );
 
   test('rejects public functions and duplicate generated routes', async () => {
-    const root = await fixture(definition.replace('isInternal:true', 'isInternal:false'));
+    const root = await fixture(publicDefinition);
     await expect(generatePlatforms({ root })).rejects.toThrow('only native internal');
   });
 });
