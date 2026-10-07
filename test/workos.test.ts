@@ -125,6 +125,10 @@ describe('reusable native WorkOS operations', () => {
     const s = setup();
     expect(s.getClient).not.toHaveBeenCalled();
     expect(s.getSessionIssuers).not.toHaveBeenCalled();
+    expect(Object.keys(s.functions.functions)).toHaveLength(14);
+    expect(Object.keys(s.functions.publicFunctions)).toHaveLength(14);
+    expect(s.functions.functions.getAccount).toBe(s.functions.account.getAccount);
+    expect(s.functions.publicFunctions.getAccount).toBe(s.functions.public.account.getAccount);
     expect(s.functions.account.getAccount.isQuery).toBe(true);
     expect(s.functions.account.getAccount.isInternal).toBe(true);
     expect(s.functions.public.account.getAccount.isPublic).toBe(true);

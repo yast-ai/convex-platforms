@@ -7,12 +7,15 @@ describe('native builders', () => {
   test('remain native internal functions with exact validators and metadata', () => {
     const def = {
       platforms: { mcp: true } as const,
+      resource: ['account', 'members'] as const,
       args: { ...identityFields, text: v.string() },
       returns: v.string(),
       handler: async (_ctx: unknown, args: { text: string }) => args.text,
     };
     const mutation = builders.internalMutation(def);
     expect(mutation.isInternal).toBe(true);
+    expect((mutation as unknown as { resource: unknown }).resource).toEqual(['account', 'members']);
+    expect((mutation as unknown as { resource: unknown }).resource).not.toBe(def.resource);
     expect(mutation.isMutation).toBe(true);
     expect(JSON.parse(mutation.exportArgs())).toEqual(v.object(def.args).json);
     expect(Object.getOwnPropertyDescriptor(mutation, validatorMetadata)?.enumerable).toBe(false);

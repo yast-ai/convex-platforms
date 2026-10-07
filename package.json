@@ -1,6 +1,6 @@
 {
   "name": "@disposabl/convex-platforms",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Reusable WorkOS account and team functions for Convex, with authenticated APIs, MCP tools, CLIs and SDKs.",
   "type": "module",
   "license": "MIT",

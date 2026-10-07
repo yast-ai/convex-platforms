@@ -14,7 +14,7 @@ Convex internal functions + validators + platforms metadata
     HTTP API · MCP tools · CLI · TypeScript/Python SDKs
 ```
 
-Optional [WorkOS account and team operations](docs/workos.md) supply native account, membership, invitation, API-key and team functions, including public wrappers and personal organization provisioning.
+Optional [WorkOS account and team operations](docs/workos.md) supply native account, membership, invitation, API-key and team functions, including public wrappers and personal organization provisioning. Configure them in one Convex file and export only the operations you want; your own account/team functions can replace any builtin.
 
 Optional MCP Apps attach your React UI to tools. Optional project-level plugins bundle skills and MCP configuration for OpenAI and Claude. Plugins are separate from function-level interface selection.
 
@@ -84,7 +84,7 @@ Generate before every deployment. Keep generated outputs out of source control a
 
 Public Convex wrappers remain independent. Interface selection does not grant permission to execute an operation.
 
-Names derive from feature folders and function names:
+Names derive from feature folders and function names. Optional `resource: ['account', 'members']` metadata sets a logical namespace independently of the file, so several resources can share one Convex module:
 
 | Source                                | HTTP                         | MCP                   | CLI                   | SDK                                   |
 | ------------------------------------- | ---------------------------- | --------------------- | --------------------- | ------------------------------------- |

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+- Configure and select WorkOS account/team operations in one Convex file with flat `functions` and optional `publicFunctions` exports; existing grouped exports remain supported.
+- Preserve logical API, MCP, CLI and SDK resource names independently of physical Convex modules through validated `resource` metadata; native function references keep the actual module path.
+- Allow custom native operations to replace omitted builtins, and configure builtin interface selection per operation with `operationPlatforms`.
+- Verify one-file selection, omitted operations, custom replacements, resource validation, collisions and packed consumer declarations/discovery.
+
 ## 0.2.0
 
 - Add reusable native Convex account, team, membership, invitation and user API-key operations through the optional `./workos` export, including public wrappers and boundary validators.

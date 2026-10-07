@@ -86,14 +86,22 @@ function selected(value: unknown, where: string): Platform[] {
     throw new Error(`${where}: invalid platforms selection`);
   return platformNames.filter((platform) => (value as Partial<Record<Platform, boolean>>)[platform] === true);
 }
-function operationName(path: string, functionsRoot: string, name: string, where: string) {
+function operationName(path: string, functionsRoot: string, name: string, where: string, override: unknown) {
   const file = relative(functionsRoot, path)
     .replaceAll(sep, '/')
     .replace(/\.ts$/, '')
     .replace(/\/(internal|actions|index)$/, '');
-  const resource = file.split('/').filter(Boolean);
+  if (
+    override !== undefined &&
+    (!Array.isArray(override) ||
+      !override.length ||
+      override.some((part: unknown) => typeof part !== 'string'))
+  )
+    throw new Error(`${where}: resource must be a nonempty array of lowerCamelCase segments`);
+  const resource: string[] =
+    override === undefined ? file.split('/').filter(Boolean) : [...(override as string[])];
   if (!resource.length || resource.some((part) => !/^[a-z][a-zA-Z0-9]*$/.test(part) || reserved.has(part)))
-    throw new Error(`${where}: resource folders must be lowerCamelCase`);
+    throw new Error(`${where}: resource segments must be lowerCamelCase and non-reserved`);
   const verb = name.match(/^[a-z]+(?=[A-Z])/)?.[0];
   const last = resource.at(-1)!;
   const singular = last.endsWith('ies') ? `${last.slice(0, -3)}y` : last.replace(/s$/, '');
@@ -101,7 +109,7 @@ function operationName(path: string, functionsRoot: string, name: string, where:
     .map((value) => value[0]!.toUpperCase() + value.slice(1))
     .find((value) => name.slice(verb?.length).startsWith(value));
   if (!/^[a-z][a-zA-Z0-9]*$/.test(name) || !verb || !suffix)
-    throw new Error(`${where}: function must be a lowerCamelCase verbResource name matching its folder`);
+    throw new Error(`${where}: function must be a lowerCamelCase verbResource name matching its resource`);
   const action = verb + name.slice(verb.length + suffix.length);
   return {
     resource,
@@ -244,7 +252,7 @@ export async function generatePlatforms(options: GeneratePlatformsOptions = {}):
         !strings(args.role)
       )
         throw new Error(`${where}: requires trusted flat orgId, userId, and role identity validators`);
-      const names = operationName(path, functionsRoot, name, where);
+      const names = operationName(path, functionsRoot, name, where, definition.resource);
       if (platforms.includes('mcp') && names.tool.length > 64)
         throw new Error(`${where}: MCP tool name exceeds 64 characters`);
       let ui: string | undefined;

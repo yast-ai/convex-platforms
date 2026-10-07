@@ -26,6 +26,8 @@ export const identityFields = { orgId: v.string(), userId: v.string(), role: v.s
 export const validatorMetadata = Symbol.for('yast.convex-platforms.validators');
 type Definition<Ctx, Args extends PropertyValidators, Returns extends GenericValidator> = {
   platforms?: Platforms;
+  /** Logical resource path, independent of the consuming Convex module. */
+  resource?: readonly string[];
   ui?: string;
   description?: string;
   args: Args;
@@ -41,6 +43,7 @@ function annotate<R extends object, Ctx, A extends PropertyValidators, V extends
   });
   return Object.assign(registered, {
     platforms: definition.platforms,
+    resource: Array.isArray(definition.resource) ? [...definition.resource] : definition.resource,
     ui: definition.ui,
     description: definition.description,
   });

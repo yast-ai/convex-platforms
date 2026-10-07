@@ -28,6 +28,22 @@ import { createWorkOSValidators } from './workos-validators.js';
 import { paginateWorkOS } from './workos-pagination.js';
 export { createWorkOSValidators } from './workos-validators.js';
 
+export type WorkOSOperationName =
+  | 'getAccount'
+  | 'updateAccount'
+  | 'listMembers'
+  | 'updateMemberRole'
+  | 'removeMember'
+  | 'listInvitations'
+  | 'sendInvitation'
+  | 'resendInvitation'
+  | 'revokeInvitation'
+  | 'listApiKeys'
+  | 'createApiKey'
+  | 'revokeApiKey'
+  | 'listTeams'
+  | 'createTeam';
+
 export type WorkOSFunctionsConfig<Role extends string> = {
   role: Validator<Role, 'required', string>;
   /** Highest priority first when a membership has multiple roles. */
@@ -44,6 +60,8 @@ export type WorkOSFunctionsConfig<Role extends string> = {
   getSessionIssuers: () => readonly string[];
   personalExternalIdPrefix?: string;
   platforms?: Platforms;
+  /** Per-operation interface selection; omission inherits platforms. Export controls registration. */
+  operationPlatforms?: Partial<Record<WorkOSOperationName, Platforms>>;
 };
 
 /** Native internal operations. Only trusted authenticated callers may supply identity fields. */
@@ -64,6 +82,7 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
   const builders = createPlatformFunctions<GenericDataModel>();
   type Definition<Ctx, A extends PropertyValidators, R extends GenericValidator> = {
     platforms?: Platforms;
+    resource: readonly string[];
     args: A;
     returns: R;
     handler: (ctx: Ctx, args: ObjectType<A>) => Infer<R> | Promise<Infer<R>>;
@@ -116,7 +135,8 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
     throw new Error(
       'WorkOS roles, administrative roles, default role and personal prefix must be configured consistently.',
     );
-  const platforms = config.platforms ?? true;
+  const platforms = (name: WorkOSOperationName): Platforms =>
+    config.operationPlatforms?.[name] ?? config.platforms ?? true;
   const assertRole = (role: Role) => {
     if (!rolePriority.includes(role)) throw new ConvexError({ code: 'role_required', status: 403 });
   };
@@ -207,13 +227,15 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
   const operations = {
     account: {
       getAccount: internalQuery({
-        platforms,
+        platforms: platforms('getAccount'),
+        resource: ['account'],
         args: identityFields,
         returns: v.object(identityFields),
         handler: (_ctx, { orgId, userId, role }) => ({ orgId, userId, role }),
       }),
       updateAccount: internalAction({
-        platforms,
+        platforms: platforms('updateAccount'),
+        resource: ['account'],
         args: { ...identityFields, name: v.string() },
         returns: account,
         handler: async (_ctx, { orgId, role, name }) => {
@@ -228,7 +250,8 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
     },
     members: {
       listMembers: internalAction({
-        platforms,
+        platforms: platforms('listMembers'),
+        resource: ['account', 'members'],
         args: { ...identityFields, ...pagination.fields },
         returns: memberPage,
         handler: async (_ctx, { orgId, paginationOpts }) => {
@@ -243,7 +266,8 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
         },
       }),
       updateMemberRole: internalAction({
-        platforms,
+        platforms: platforms('updateMemberRole'),
+        resource: ['account', 'members'],
         args: { ...identityFields, membershipId: v.string(), roleSlug: config.role },
         returns: member,
         handler: async (_ctx, { orgId, userId, role, membershipId, roleSlug }) => {
@@ -258,7 +282,8 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
         },
       }),
       removeMember: internalAction({
-        platforms,
+        platforms: platforms('removeMember'),
+        resource: ['account', 'members'],
         args: { ...identityFields, membershipId: v.string() },
         returns: v.null(),
         handler: async (_ctx, { orgId, userId, role, membershipId }) => {
@@ -273,7 +298,8 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
     },
     invitations: {
       listInvitations: internalAction({
-        platforms,
+        platforms: platforms('listInvitations'),
+        resource: ['account', 'invitations'],
         args: { ...identityFields, ...pagination.fields },
         returns: invitationPage,
         handler: async (_ctx, { orgId, role, paginationOpts }) => {
@@ -287,7 +313,8 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
         },
       }),
       sendInvitation: internalAction({
-        platforms,
+        platforms: platforms('sendInvitation'),
+        resource: ['account', 'invitations'],
         args: { ...identityFields, email: v.string(), roleSlug: v.optional(config.role) },
         returns: invitation,
         handler: async (_ctx, { orgId, userId, role, email, roleSlug }) => {
@@ -309,7 +336,8 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
         },
       }),
       resendInvitation: internalAction({
-        platforms,
+        platforms: platforms('resendInvitation'),
+        resource: ['account', 'invitations'],
         args: { ...identityFields, invitationId: v.string() },
         returns: invitation,
         handler: async (_ctx, { orgId, role, invitationId }) => {
@@ -321,7 +349,8 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
         },
       }),
       revokeInvitation: internalAction({
-        platforms,
+        platforms: platforms('revokeInvitation'),
+        resource: ['account', 'invitations'],
         args: { ...identityFields, invitationId: v.string() },
         returns: invitation,
         handler: async (_ctx, { orgId, role, invitationId }) => {
@@ -335,7 +364,8 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
     },
     apiKeys: {
       listApiKeys: internalAction({
-        platforms,
+        platforms: platforms('listApiKeys'),
+        resource: ['account', 'apiKeys'],
         args: { ...identityFields, ...pagination.fields },
         returns: apiKeyPage,
         handler: async (_ctx, { orgId, userId, paginationOpts }) => {
@@ -346,7 +376,8 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
         },
       }),
       createApiKey: internalAction({
-        platforms,
+        platforms: platforms('createApiKey'),
+        resource: ['account', 'apiKeys'],
         args: { ...identityFields, name: v.string() },
         returns: apiKeyCreated,
         handler: async (ctx, { orgId, userId, name }) => {
@@ -361,7 +392,8 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
         },
       }),
       revokeApiKey: internalAction({
-        platforms,
+        platforms: platforms('revokeApiKey'),
+        resource: ['account', 'apiKeys'],
         args: { ...identityFields, apiKeyId: v.string() },
         returns: v.null(),
         handler: async (_ctx, { orgId, userId, apiKeyId }) => {
@@ -392,7 +424,8 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
     },
     teams: {
       listTeams: internalAction({
-        platforms,
+        platforms: platforms('listTeams'),
+        resource: ['teams'],
         args: { ...identityFields, ...pagination.fields },
         returns: accountPage,
         handler: async (_ctx, { userId, paginationOpts }) => {
@@ -407,7 +440,8 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
         },
       }),
       createTeam: internalAction({
-        platforms,
+        platforms: platforms('createTeam'),
+        resource: ['teams'],
         args: { ...identityFields, name: v.string(), requestId: v.string() },
         returns: account,
         handler: async (ctx, { orgId, userId, name, requestId }) => {
@@ -468,6 +502,22 @@ export function createWorkOSFunctions<Role extends string>(config: WorkOSFunctio
   const teamOperations = project(operations.teams);
   return {
     validators: schemas,
+    /** Export selected keys from one Convex module; unexported operations are not exposed. */
+    functions: {
+      ...accountOperations.internal,
+      ...memberOperations.internal,
+      ...invitationOperations.internal,
+      ...apiKeyOperations.internal,
+      ...teamOperations.internal,
+    },
+    /** Optional native public functions, usually exported with Public suffix aliases. */
+    publicFunctions: {
+      ...accountOperations.public,
+      ...memberOperations.public,
+      ...invitationOperations.public,
+      ...apiKeyOperations.public,
+      ...teamOperations.public,
+    },
     account: accountOperations.internal,
     members: memberOperations.internal,
     invitations: invitationOperations.internal,

@@ -32,6 +32,108 @@ export const omittedTodo = internalQuery({ args: { ...identityFields }, returns:
 const publicDefinition = `${definition}\nObject.assign(listTodos, { isInternal: false });`;
 
 describe('generatePlatforms', () => {
+  test('one Convex module chooses builtins, replaces an operation and keeps stable logical routes', async () => {
+    const root = await fixture(definition);
+    const workosPath = JSON.stringify(resolve(import.meta.dirname, '../src/workos.ts'));
+    await Bun.write(
+      join(root, 'convex/workos.ts'),
+      `
+import { v } from 'convex/values';
+import { createWorkOSFunctions } from ${workosPath};
+import { createPlatformFunctions, identityFields } from ${functionsPath};
+const workos = createWorkOSFunctions({
+  role: v.union(v.literal('admin'), v.literal('member')), roles: ['admin', 'member'],
+  adminRoles: ['admin'], defaultRole: 'member',
+  getClient: () => { throw new Error('Must stay lazy'); },
+  getSessionIssuers: () => { throw new Error('Must stay lazy'); },
+  resolveIdentity: async () => { throw new Error('Must stay lazy'); },
+  operationPlatforms: { listMembers: { mcp: true }, listApiKeys: false },
+});
+export const { listMembers, listApiKeys, listTeams, createTeam } = workos.functions;
+export const { listMembers: listMembersPublic } = workos.publicFunctions;
+const { internalQuery } = createPlatformFunctions<any>();
+export const getAccount = internalQuery({ resource: ['account'], platforms: true, args: identityFields, returns: v.string(), handler: () => 'custom-account' });
+`,
+    );
+    const manifest = await generatePlatforms({ root });
+    expect(manifest.operations.map(({ name }) => name).sort()).toEqual([
+      'createTeam',
+      'getAccount',
+      'listMembers',
+      'listTeams',
+      'listTodos',
+    ]);
+    expect(manifest.operations.find(({ name }) => name === 'getAccount')).toMatchObject({
+      resource: ['account'],
+      path: '/api/v1/account/get',
+      tool: 'account_get',
+      function: 'workos:getAccount',
+      outputSchema: { type: 'string' },
+    });
+    expect(manifest.operations.find(({ name }) => name === 'listMembers')).toMatchObject({
+      resource: ['account', 'members'],
+      path: '/api/v1/account/members/list',
+      tool: 'account_members_list',
+      function: 'workos:listMembers',
+      platforms: ['mcp'],
+    });
+    expect(manifest.openapi.paths).not.toHaveProperty('/api/v1/account/members/list');
+    const typescript = await readFile(join(root, 'platforms/generated/sdk-typescript.ts'), 'utf8');
+    const python = await readFile(join(root, 'platforms/generated/sdk-python.py'), 'utf8');
+    expect(typescript).toContain('"account"');
+    expect(typescript).toContain('/api/v1/account/get');
+    expect(python).toContain('self.account');
+    expect(python).toContain('/api/v1/account/get');
+    expect(typescript).not.toContain('ListMembersArgs');
+  });
+
+  test.each(
+    [
+      [],
+      ['..'],
+      ['account/members'],
+      ['account', '__proto__'],
+      ['constructor'],
+      ['prototype'],
+      ['Account'],
+      ['account', 'a-b'],
+      ['account', 'a b'],
+      ['account', '%2e%2e'],
+      'account',
+      null,
+      [42],
+    ].map((resource) => [resource]),
+  )('rejects unsafe logical resource metadata %j', async (resource) => {
+    const root = await fixture(
+      definition.replace("description: 'List todos',", `resource: ${JSON.stringify(resource)},`),
+    );
+    await expect(generatePlatforms({ root })).rejects.toThrow('resource');
+  });
+
+  test('rejects logical route collisions across physical modules', async () => {
+    const root = await fixture(definition);
+    await Bun.write(
+      join(root, 'convex/workos.ts'),
+      definition
+        .replace('listTodos', 'listTodo')
+        .replace("description: 'List todos',", "resource: ['todos'],"),
+    );
+    await expect(generatePlatforms({ root })).rejects.toThrow('Duplicate platform path');
+  });
+
+  test('rejects normalized MCP tool collisions across different logical paths', async () => {
+    const root = await fixture(
+      definition.replace("description: 'List todos',", "resource: ['fooBar', 'todos'],"),
+    );
+    await Bun.write(
+      join(root, 'convex/workos.ts'),
+      definition
+        .replace('listTodos', 'listBarTodos')
+        .replace("description: 'List todos',", "resource: ['foo', 'barTodos'],"),
+    );
+    await expect(generatePlatforms({ root })).rejects.toThrow('Duplicate platform tool');
+  });
+
   test('bundles Tailwind widgets without loading application build configuration', async () => {
     const root = await fixture(definition);
     await mkdir(join(root, 'platforms/ui'), { recursive: true });
