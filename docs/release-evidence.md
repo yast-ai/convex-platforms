@@ -12,6 +12,8 @@ The optional `./workos` module owns all 14 account, team, member, invitation and
 
 Webhook provisioning and conflict recovery were exercised with native `convex-test` HTTP handlers and provider mocks; signature verification also used the real WorkOS SDK and HMAC. These checks do not claim a fresh live signup or native ChatGPT/Claude installation. Real Connect OAuth and host tool/UI verification remain unverified.
 
+Release source `0eaaecd356122aee1b902e5970684e059dace021` passed [CI](https://github.com/yast-ai/convex-platforms/actions/runs/37619241391) and [actual trusted publishing](https://github.com/yast-ai/convex-platforms/actions/runs/37619241340). The registry's `0.2.0` tarball downloaded with matching SHA-512 integrity, and a fresh registry installation imported the WorkOS entry point. npm signature audit verified 27 registry signatures and 15 attestations. [Signed provenance](https://search.sigstore.dev/?logIndex=3130833780) records the release workflow.
+
 ## Earlier platform release verification
 
 Verified on 2026-10-07 using Bun 1.4.2, Node 24 and Python 3.12. This record distinguishes executed checks from remaining interactive verification.
