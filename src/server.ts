@@ -1,4 +1,4 @@
-import { WorkOS } from '@workos-inc/node';
+import { WorkOS, type ValidateApiKeyResponse } from '@workos-inc/node';
 import {
   httpActionGeneric,
   makeFunctionReference,
@@ -15,24 +15,9 @@ const maxInputBytes = 1_000_000;
 const identityKeys = ['orgId', 'userId', 'role', 'user', 'args'];
 type RuntimeCtx = GenericActionCtx<GenericDataModel>;
 type Claims = { subject?: string; issuer?: string; org_id?: string; aud?: string | string[] };
-type WorkOSPort = {
-  apiKeys: { createValidation(input: { value: string }): Promise<{ apiKey?: ApiKey | null }> };
-  userManagement: {
-    listOrganizationMemberships(input: {
-      userId: string;
-      organizationId: string;
-      statuses: ['active'];
-      limit: number;
-    }): Promise<{ data: Membership[] }>;
-  };
-};
-type ApiKey = { owner?: { type?: string; id?: string; organizationId?: string }; permissions?: string[] };
-type Membership = {
-  status?: string;
-  userId?: string;
-  organizationId?: string;
-  role?: { slug?: string };
-  roles?: Array<{ slug?: string }>;
+export type WorkOSPort = {
+  apiKeys: Pick<WorkOS['apiKeys'], 'createValidation'>;
+  userManagement: Pick<WorkOS['userManagement'], 'listOrganizationMemberships'>;
 };
 
 export type PlatformServerConfig = {
@@ -73,6 +58,7 @@ function safeOrigin(value: string, name: string): string {
   }
   if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopback(url)))
     throw new Error(`${name} must use HTTPS except for a loopback development URL`);
+  if (url.username || url.password) throw new Error(`${name} must not include credentials`);
   if (url.pathname !== '/' || url.search || url.hash) throw new Error(`${name} must be an origin`);
   return url.origin;
 }
@@ -126,9 +112,25 @@ function errorResponse(error: unknown, mcp = false) {
   return Response.json({ status: 'error', error: { code: runtime.code } }, { status: runtime.status });
 }
 
+type JsonRpcId = string | number | null;
+
+function jsonRpcError(error: unknown, id: JsonRpcId) {
+  const runtime = error instanceof RuntimeError ? error : new RuntimeError(500, 'request_failed');
+  return Response.json(
+    { jsonrpc: '2.0', error: { code: runtime.status, message: runtime.code }, id },
+    { status: runtime.status },
+  );
+}
+
 function cors(request: Request, allowed: Set<string>): Record<string, string> {
   const origin = request.headers.get('origin');
-  return origin && allowed.has(origin) ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {};
+  return origin && allowed.has(origin)
+    ? {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Expose-Headers': 'WWW-Authenticate',
+        Vary: 'Origin',
+      }
+    : {};
 }
 
 async function jsonInput(request: Request): Promise<Record<string, Value>> {
@@ -215,7 +217,6 @@ export function createPlatformServer(config: PlatformServerConfig): PlatformServ
     const raw = await ctx.auth.getUserIdentity().catch(() => null);
     const claims = (raw ?? {}) as Claims;
     const sessionIssuers = new Set([
-      new URL(config.workos.authkitUrl).origin,
       'https://api.workos.com/',
       `https://api.workos.com/user_management/${config.workos.clientId}`,
     ]);
@@ -238,7 +239,7 @@ export function createPlatformServer(config: PlatformServerConfig): PlatformServ
   async function apiIdentity(ctx: RuntimeCtx, request: Request) {
     const token = bearer(request);
     if (!token.startsWith('sk_')) return sessionIdentity(ctx, false);
-    let validated: { apiKey?: ApiKey | null };
+    let validated: ValidateApiKeyResponse;
     try {
       validated = await workos.apiKeys.createValidation({ value: token });
     } catch {
@@ -280,71 +281,110 @@ export function createPlatformServer(config: PlatformServerConfig): PlatformServ
     if (request.headers.get('mcp-session-id') || request.headers.get('mcp-protocol-version') === '2024-11-05')
       throw new RuntimeError(400, 'legacy_mcp_not_supported');
     bearer(request);
-    const identity = await sessionIdentity(ctx, true);
     const requestBody = await jsonInput(request);
-    const method = typeof requestBody.method === 'string' ? requestBody.method : '';
-    const id = requestBody.id ?? null;
+    const hasId = Object.prototype.hasOwnProperty.call(requestBody, 'id');
+    const idValue = requestBody.id;
+    const id: JsonRpcId =
+      hasId && (idValue === null || typeof idValue === 'string' || typeof idValue === 'number')
+        ? idValue
+        : null;
+    const fail = (error: RuntimeError) => {
+      const response = jsonRpcError(error, id);
+      for (const [name, value] of Object.entries(cors(request, allowedOrigins)))
+        response.headers.set(name, value);
+      return response;
+    };
+    if (requestBody.jsonrpc !== '2.0' || typeof requestBody.method !== 'string' || !requestBody.method)
+      return fail(new RuntimeError(400, 'invalid_jsonrpc_request'));
+    if (hasId && idValue !== null && typeof idValue !== 'string' && typeof idValue !== 'number')
+      return fail(new RuntimeError(400, 'invalid_jsonrpc_id'));
+    const method = requestBody.method;
     const params = requestBody.params;
-    const respond = (result: unknown) =>
-      Response.json({ jsonrpc: '2.0', id, result }, { headers: cors(request, allowedOrigins) });
-    if (method === 'initialize')
-      return respond({
-        protocolVersion: '2025-06-18',
-        capabilities: { tools: {}, resources: {} },
-        serverInfo: { name: config.manifest.name, version: '1' },
-      });
-    if (method === 'tools/list')
-      return respond({
-        tools: [...tools.values()].map((op) => ({
-          name: op.tool,
-          description: op.description,
-          inputSchema: op.inputSchema,
-          outputSchema: { type: 'object', properties: { result: op.outputSchema }, required: ['result'] },
-          ...(op.ui ? { _meta: { ui: { resourceUri: op.ui } } } : {}),
-        })),
-      });
-    if (method === 'resources/list')
-      return respond({
-        resources: Object.keys(config.manifest.widgets).map((uri) => ({
-          uri,
-          name: uri,
-          mimeType: 'text/html;profile=mcp-app',
-        })),
-      });
-    if (method === 'resources/read') {
-      const uri = typeof params === 'object' && params ? (params as Record<string, unknown>).uri : undefined;
-      const widget = typeof uri === 'string' ? config.manifest.widgets[uri] : undefined;
-      if (!widget) throw new RuntimeError(404, 'resource_not_found');
-      return respond({
-        contents: [
-          {
+    const initVersion =
+      typeof params === 'object' && params && !Array.isArray(params)
+        ? (params as Record<string, unknown>).protocolVersion
+        : undefined;
+    if (method === 'initialize' && initVersion === '2024-11-05')
+      return fail(new RuntimeError(400, 'legacy_mcp_not_supported'));
+    try {
+      const identity = await sessionIdentity(ctx, true);
+      if (!hasId) {
+        if (method.startsWith('notifications/'))
+          return new Response(null, { status: 202, headers: cors(request, allowedOrigins) });
+        throw new RuntimeError(400, 'jsonrpc_id_required');
+      }
+      const respond = (result: unknown) =>
+        Response.json({ jsonrpc: '2.0', id, result }, { headers: cors(request, allowedOrigins) });
+      if (method === 'initialize')
+        return respond({
+          protocolVersion: '2025-06-18',
+          capabilities: { tools: {}, resources: {} },
+          serverInfo: { name: config.manifest.name, version: '1' },
+        });
+      if (method === 'tools/list')
+        return respond({
+          tools: [...tools.values()].map((op) => ({
+            name: op.tool,
+            description: op.description,
+            inputSchema: op.inputSchema,
+            outputSchema: { type: 'object', properties: { result: op.outputSchema }, required: ['result'] },
+            ...(op.ui ? { _meta: { ui: { resourceUri: op.ui } } } : {}),
+          })),
+        });
+      if (method === 'resources/list')
+        return respond({
+          resources: Object.keys(config.manifest.widgets).map((uri) => ({
             uri,
-            text: widget.text,
+            name: uri,
             mimeType: 'text/html;profile=mcp-app',
-            _meta: {
-              ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: [], ...widget.csp } },
+          })),
+        });
+      if (method === 'resources/read') {
+        const uri =
+          typeof params === 'object' && params ? (params as Record<string, unknown>).uri : undefined;
+        const widget = typeof uri === 'string' ? config.manifest.widgets[uri] : undefined;
+        if (!widget) throw new RuntimeError(404, 'resource_not_found');
+        return respond({
+          contents: [
+            {
+              uri,
+              text: widget.text,
+              mimeType: 'text/html;profile=mcp-app',
+              _meta: {
+                ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: [], ...widget.csp } },
+              },
             },
-          },
-        ],
-      });
+          ],
+        });
+      }
+      if (method === 'tools/call') {
+        const values = typeof params === 'object' && params ? (params as Record<string, unknown>) : null;
+        const name = typeof values?.name === 'string' ? values.name : '';
+        const operation = tools.get(name);
+        if (!operation) throw new RuntimeError(404, 'tool_not_found');
+        const argumentsValue = values?.arguments ?? {};
+        if (typeof argumentsValue !== 'object' || Array.isArray(argumentsValue))
+          throw new RuntimeError(400, 'expected_json_object');
+        for (const key of identityKeys)
+          if (key in argumentsValue) throw new RuntimeError(400, 'client_identity_forbidden');
+        try {
+          const result = await invoke(ctx, operation, identity, argumentsValue as Record<string, Value>);
+          return respond({
+            content: [{ type: 'text', text: JSON.stringify(result) }],
+            structuredContent: { result },
+          });
+        } catch (error) {
+          const code = error instanceof RuntimeError ? error.code : 'operation_failed';
+          return respond({ isError: true, content: [{ type: 'text', text: JSON.stringify({ code }) }] });
+        }
+      }
+      throw new RuntimeError(404, 'method_not_found');
+    } catch (error) {
+      const response = jsonRpcError(error, id);
+      for (const [name, value] of Object.entries(cors(request, allowedOrigins)))
+        response.headers.set(name, value);
+      return response;
     }
-    if (method === 'tools/call') {
-      const values = typeof params === 'object' && params ? (params as Record<string, unknown>) : null;
-      const name = typeof values?.name === 'string' ? values.name : '';
-      const operation = tools.get(name);
-      if (!operation) throw new RuntimeError(404, 'tool_not_found');
-      const argumentsValue = values?.arguments;
-      if (!argumentsValue || typeof argumentsValue !== 'object' || Array.isArray(argumentsValue))
-        throw new RuntimeError(400, 'expected_json_object');
-      for (const key of identityKeys)
-        if (key in argumentsValue) throw new RuntimeError(400, 'client_identity_forbidden');
-      const result = await invoke(ctx, operation, identity, argumentsValue as Record<string, Value>);
-      return respond({
-        content: [{ type: 'text', text: JSON.stringify(result) }],
-        structuredContent: { result },
-      });
-    }
-    throw new RuntimeError(404, 'method_not_found');
   }
 
   async function fetch(request: Request, ctx: RuntimeCtx) {

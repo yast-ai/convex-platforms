@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { httpRouter } from 'convex/server';
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import type { ApiKey, OrganizationMembership, ValidateApiKeyResponse } from '@workos-inc/node';
 import type { Manifest } from '../src/contract.js';
-import { createPlatformServer } from '../src/server.js';
+import { createPlatformServer, type WorkOSPort } from '../src/server.js';
 
 const manifest: Manifest = {
   version: 1,
@@ -56,6 +58,41 @@ const manifest: Manifest = {
 
 function runtime(options: { permissions?: string[]; active?: boolean } = {}) {
   const calls: Array<{ kind: string; args: unknown }> = [];
+  const apiKey = {
+    object: 'api_key',
+    id: 'key_1',
+    owner: { type: 'user' as const, id: 'user_1', organizationId: 'org_1' },
+    name: 'Test key',
+    obfuscatedValue: 'sk_***',
+    lastUsedAt: null,
+    permissions: options.permissions ?? ['api:access'],
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  } satisfies ApiKey;
+  const membership = {
+    object: 'organization_membership' as const,
+    id: 'om_1',
+    organizationId: 'org_1',
+    organizationName: 'Test organization',
+    status: 'active' as const,
+    userId: 'user_1',
+    directoryManaged: false,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    customAttributes: {},
+    role: { slug: 'builder' },
+    roles: [{ slug: 'builder' }],
+  } satisfies OrganizationMembership;
+  const validation = { apiKey } satisfies ValidateApiKeyResponse;
+  const workosClient = {
+    apiKeys: { createValidation: async () => validation },
+    userManagement: {
+      listOrganizationMemberships: async () =>
+        ({ data: options.active === false ? [] : [membership] }) as Awaited<
+          ReturnType<WorkOSPort['userManagement']['listOrganizationMemberships']>
+        >,
+    },
+  } satisfies WorkOSPort;
   const server = createPlatformServer({
     manifest,
     workos: {
@@ -64,31 +101,7 @@ function runtime(options: { permissions?: string[]; active?: boolean } = {}) {
       authkitUrl: 'https://auth.example.com',
       siteUrl: 'https://app.example.com',
     },
-    workosClient: {
-      apiKeys: {
-        createValidation: async () => ({
-          apiKey: {
-            owner: { type: 'user', id: 'user_1', organizationId: 'org_1' },
-            permissions: options.permissions ?? ['api:access'],
-          },
-        }),
-      },
-      userManagement: {
-        listOrganizationMemberships: async () => ({
-          data:
-            options.active === false
-              ? []
-              : [
-                  {
-                    status: 'active',
-                    userId: 'user_1',
-                    organizationId: 'org_1',
-                    roles: [{ slug: 'builder' }],
-                  },
-                ],
-        }),
-      },
-    },
+    workosClient,
   });
   const ctx = {
     auth: {
@@ -220,6 +233,19 @@ describe('Convex Platforms runtime', () => {
     expect(response.status).toBe(401);
   });
 
+  test('does not accept a Connect token on public API routes', async () => {
+    const { server, ctx } = runtime();
+    const response = await server.fetch(
+      new Request('https://app.example.com/api/v1/todos/list', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer connect_token' },
+        body: '{}',
+      }),
+      ctx as never,
+    );
+    expect(response.status).toBe(401);
+  });
+
   test('rejects MCP tokens for the wrong resource audience', async () => {
     const { server, ctx } = runtime();
     const wrongAudience = {
@@ -276,6 +302,46 @@ describe('Convex Platforms runtime', () => {
     const router = httpRouter();
     server.registerRoutes(router);
     expect(router.getRoutes().map(([path]) => path)).toContain('/cli/manifest');
+  });
+
+  test('accepts MCP notifications and preserves a request id in JSON-RPC errors', async () => {
+    const { server, ctx } = runtime();
+    const notification = await server.fetch(
+      new Request('https://app.example.com/mcp', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer session' },
+        body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }),
+      }),
+      ctx as never,
+    );
+    expect(notification.status).toBe(202);
+
+    const malformed = await server.fetch(
+      new Request('https://app.example.com/mcp', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer session' },
+        body: JSON.stringify({ jsonrpc: '1.0', id: 'request-1', method: 'tools/list' }),
+      }),
+      ctx as never,
+    );
+    expect(malformed.status).toBe(400);
+    expect(await malformed.json()).toMatchObject({ id: 'request-1', error: { code: 400 } });
+  });
+
+  test('works with the official Streamable HTTP MCP client', async () => {
+    const { server, ctx } = runtime();
+    const transport = new StreamableHTTPClientTransport(new URL('https://app.example.com/mcp'), {
+      authProvider: { token: async () => 'session' },
+      fetch: (input, init) => {
+        const request = input instanceof Request ? new Request(input, init) : new Request(input, init);
+        return server.fetch(request, ctx as never);
+      },
+    });
+    const client = new Client({ name: 'test-client', version: '1' }, {});
+    await client.connect(transport);
+    const listed = await client.listTools();
+    expect(listed.tools.map((tool) => tool.name)).toContain('todos_list');
+    await transport.close();
   });
 
   test('rejects duplicate manifest route names and insecure widget CSP', () => {
